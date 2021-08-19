@@ -20,36 +20,40 @@ import sys
 import urllib.request
 from functools import partial
 
-SOURCE_URL = 'https://aistdancedb.ongaaccel.jp/v1.0.0/video/10M/'
-LIST_URL = 'https://storage.googleapis.com/aist_plusplus_public/20121228/video_list.txt'
+SOURCE_URL = "https://aistdancedb.ongaaccel.jp/v1.0.0/video/10M/"
+LIST_URL = "https://storage.googleapis.com/aist_plusplus_public/20121228/video_list.txt"
+
 
 def _download(video_url, download_folder):
-  save_path = os.path.join(download_folder, os.path.basename(video_url))
-  urllib.request.urlretrieve(video_url, save_path)
-  
-if __name__ == '__main__':
-  parser = argparse.ArgumentParser(
-      description='Scripts for downloading AIST++ videos.')
-  parser.add_argument(
-      '--download_folder',
-      type=str,
-      required=True,
-      help='where to store AIST++ videos.')
-  parser.add_argument(
-      '--num_processes',
-      type=int,
-      default=1,
-      help='number of threads for multiprocessing.')
-  args = parser.parse_args()
-  os.makedirs(args.download_folder, exist_ok=True)
+    save_path = os.path.join(download_folder, os.path.basename(video_url))
+    urllib.request.urlretrieve(video_url, save_path)
 
-  seq_names = urllib.request.urlopen(LIST_URL)
-  seq_names = [seq_name.strip().decode('utf-8') for seq_name in seq_names]
-  video_urls = [
-      os.path.join(SOURCE_URL, seq_name + '.mp4') for seq_name in seq_names]
 
-  download_func = partial(_download, download_folder=args.download_folder)
-  pool = multiprocessing.Pool(processes=args.num_processes)
-  for i, _ in enumerate(pool.imap_unordered(download_func, video_urls)):
-    sys.stderr.write('\rdownloading %d / %d' % (i + 1, len(video_urls)))
-  sys.stderr.write('\ndone.\n')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Scripts for downloading AIST++ videos."
+    )
+    parser.add_argument(
+        "--download_folder",
+        type=str,
+        required=True,
+        help="where to store AIST++ videos.",
+    )
+    parser.add_argument(
+        "--num_processes",
+        type=int,
+        default=1,
+        help="number of threads for multiprocessing.",
+    )
+    args = parser.parse_args()
+    os.makedirs(args.download_folder, exist_ok=True)
+
+    seq_names = urllib.request.urlopen(LIST_URL)
+    seq_names = [seq_name.strip().decode("utf-8") for seq_name in seq_names]
+    video_urls = [os.path.join(SOURCE_URL, seq_name + ".mp4") for seq_name in seq_names]
+
+    download_func = partial(_download, download_folder=args.download_folder)
+    pool = multiprocessing.Pool(processes=args.num_processes)
+    for i, _ in enumerate(pool.imap_unordered(download_func, video_urls)):
+        sys.stderr.write("\rdownloading %d / %d" % (i + 1, len(video_urls)))
+    sys.stderr.write("\ndone.\n")

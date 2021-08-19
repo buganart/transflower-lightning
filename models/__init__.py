@@ -1,7 +1,9 @@
 print("HIIIIIIOOO")
 import importlib
 from .base_model import BaseModel
+
 print("HIIIIIIOOO")
+
 
 def find_model_using_name(model_name):
     # Given the option --model [modelname],
@@ -17,14 +19,20 @@ def find_model_using_name(model_name):
     # be instantiated. It has to be a subclass of BaseModel,
     # and it is case-insensitive.
     model = None
-    target_model_name = model_name.replace('_', '') + 'model'
+    target_model_name = model_name.replace("_", "") + "model"
     for name, cls in modellib.__dict__.items():
-        if name.lower() == target_model_name.lower() \
-                and next(iter(cls.__bases__)).__module__.endswith(BaseModel.__module__):  # check that base class is BaseModel
+        if name.lower() == target_model_name.lower() and next(
+            iter(cls.__bases__)
+        ).__module__.endswith(
+            BaseModel.__module__
+        ):  # check that base class is BaseModel
             model = cls
 
     if model is None:
-        raise NotImplementedError("In %s.py, there should be a subclass of BaseModel with class name that matches %s in lowercase." % (model_filename, target_model_name))
+        raise NotImplementedError(
+            "In %s.py, there should be a subclass of BaseModel with class name that matches %s in lowercase."
+            % (model_filename, target_model_name)
+        )
 
     return model
 
@@ -37,6 +45,7 @@ def get_option_setter(model_name):
 def create_model(opt):
     instance = create_model_by_name(opt.model, opt)
     return instance
+
 
 def create_model_by_name(name, opt):
     model = find_model_using_name(name)

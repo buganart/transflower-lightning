@@ -15,8 +15,12 @@ import numpy as np
 
 from ..audio.signal import signal_frame, smooth as smooth_signal
 from ..ml.nn import average_predictions
-from ..processors import (OnlineProcessor, ParallelProcessor, Processor,
-                          SequentialProcessor)
+from ..processors import (
+    OnlineProcessor,
+    ParallelProcessor,
+    Processor,
+    SequentialProcessor,
+)
 
 
 # classes for tracking (down-)beats with RNNs
@@ -67,16 +71,20 @@ class RNNBeatProcessor(SequentialProcessor):
 
     """
 
-    def __init__(self, post_processor=average_predictions, online=False,
-                 nn_files=None, **kwargs):
+    def __init__(
+        self, post_processor=average_predictions, online=False, nn_files=None, **kwargs
+    ):
         # pylint: disable=unused-argument
         from ..audio.signal import SignalProcessor, FramedSignalProcessor
         from ..audio.stft import ShortTimeFourierTransformProcessor
         from ..audio.spectrogram import (
-            FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
-            SpectrogramDifferenceProcessor)
+            FilteredSpectrogramProcessor,
+            LogarithmicSpectrogramProcessor,
+            SpectrogramDifferenceProcessor,
+        )
         from ..ml.nn import NeuralNetworkEnsemble
         from ..models import BEATS_LSTM, BEATS_BLSTM
+
         # choose the appropriate models and set frame sizes accordingly
         if online:
             if nn_files is None:
@@ -95,19 +103,20 @@ class RNNBeatProcessor(SequentialProcessor):
         for frame_size in frame_sizes:
             frames = FramedSignalProcessor(frame_size=frame_size, **kwargs)
             stft = ShortTimeFourierTransformProcessor()  # caching FFT window
-            filt = FilteredSpectrogramProcessor(num_bands=num_bands, fmin=30,
-                                                fmax=17000, norm_filters=True)
+            filt = FilteredSpectrogramProcessor(
+                num_bands=num_bands, fmin=30, fmax=17000, norm_filters=True
+            )
             spec = LogarithmicSpectrogramProcessor(mul=1, add=1)
             diff = SpectrogramDifferenceProcessor(
-                diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack)
+                diff_ratio=0.5, positive_diffs=True, stack_diffs=np.hstack
+            )
             # process each frame size with spec and diff sequentially
             multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
         # stack the features and processes everything sequentially
         pre_processor = SequentialProcessor((sig, multi, np.hstack))
         # process the pre-processed signal with a NN ensemble and the given
         # post_processor
-        nn = NeuralNetworkEnsemble.load(nn_files,
-                                        ensemble_fn=post_processor, **kwargs)
+        nn = NeuralNetworkEnsemble.load(nn_files, ensemble_fn=post_processor, **kwargs)
         # instantiate a SequentialProcessor
         super(RNNBeatProcessor, self).__init__((pre_processor, nn))
 
@@ -209,8 +218,9 @@ class MultiModelSelectionProcessor(Processor):
             # average the reference predictions
             reference = average_predictions(predictions[:num_refs])
         else:
-            raise ValueError('`num_ref_predictions` must be positive or None, '
-                             '%s given' % num_refs)
+            raise ValueError(
+                "`num_ref_predictions` must be positive or None, " "%s given" % num_refs
+            )
         # init the error with the max. possible value (i.e. prediction length)
         best_error = len(reference)
         # init the best_prediction with an empty array
@@ -218,7 +228,7 @@ class MultiModelSelectionProcessor(Processor):
         # compare the (remaining) predictions with the reference prediction
         for prediction in predictions[num_refs:]:
             # calculate the squared error w.r.t. the reference prediction
-            error = np.sum((prediction - reference) ** 2.)
+            error = np.sum((prediction - reference) ** 2.0)
             # chose the best activation
             if error < best_error:
                 best_prediction = prediction
@@ -377,11 +387,18 @@ class BeatTrackingProcessor(Processor):
     array([0.11, 0.45, 0.79, 1.13, 1.47, 1.81, 2.15, 2.49])
 
     """
-    LOOK_ASIDE = 0.2
-    LOOK_AHEAD = 10.
 
-    def __init__(self, look_aside=LOOK_ASIDE, look_ahead=LOOK_AHEAD, fps=None,
-                 tempo_estimator=None, **kwargs):
+    LOOK_ASIDE = 0.2
+    LOOK_AHEAD = 10.0
+
+    def __init__(
+        self,
+        look_aside=LOOK_ASIDE,
+        look_ahead=LOOK_AHEAD,
+        fps=None,
+        tempo_estimator=None,
+        **kwargs
+    ):
         # save variables
         self.look_aside = look_aside
         self.look_ahead = look_ahead
@@ -390,6 +407,7 @@ class BeatTrackingProcessor(Processor):
         if tempo_estimator is None:
             # import the TempoEstimation here otherwise we have a loop
             from .tempo import TempoEstimationProcessor
+
             # create default tempo estimator
             tempo_estimator = TempoEstimationProcessor(fps=fps, **kwargs)
         self.tempo_estimator = tempo_estimator
@@ -440,8 +458,11 @@ class BeatTrackingProcessor(Processor):
                 # correct the beat positions
                 positions += pos - look_ahead_frames
                 # remove all positions < already detected beats + min_interval
-                next_pos = (detections[-1] + self.tempo_estimator.min_interval
-                            if detections else 0)
+                next_pos = (
+                    detections[-1] + self.tempo_estimator.min_interval
+                    if detections
+                    else 0
+                )
                 positions = positions[positions >= next_pos]
                 # search the closest beat to the predicted beat position
                 pos = positions[(np.abs(positions - pos)).argmin()]
@@ -452,11 +473,10 @@ class BeatTrackingProcessor(Processor):
         # convert detected beats to a list of timestamps
         detections = np.array(detections) / float(self.fps)
         # remove beats with negative times and return them
-        return detections[np.searchsorted(detections, 0):]
+        return detections[np.searchsorted(detections, 0) :]
 
     @staticmethod
-    def add_arguments(parser, look_aside=LOOK_ASIDE,
-                      look_ahead=LOOK_AHEAD):
+    def add_arguments(parser, look_aside=LOOK_ASIDE, look_ahead=LOOK_AHEAD):
         """
         Add beat tracking related arguments to an existing parser.
 
@@ -483,21 +503,29 @@ class BeatTrackingProcessor(Processor):
 
         """
         # add beat detection related options to the existing parser
-        g = parser.add_argument_group('beat detection arguments')
+        g = parser.add_argument_group("beat detection arguments")
         # TODO: unify look_aside with CRFBeatDetection's interval_sigma
         if look_aside is not None:
-            g.add_argument('--look_aside', action='store', type=float,
-                           default=look_aside,
-                           help='look this fraction of a beat interval to '
-                                'each side of the assumed next beat position '
-                                'to look for the most likely position of the '
-                                'next beat [default=%(default).2f]')
+            g.add_argument(
+                "--look_aside",
+                action="store",
+                type=float,
+                default=look_aside,
+                help="look this fraction of a beat interval to "
+                "each side of the assumed next beat position "
+                "to look for the most likely position of the "
+                "next beat [default=%(default).2f]",
+            )
         if look_ahead is not None:
-            g.add_argument('--look_ahead', action='store', type=float,
-                           default=look_ahead,
-                           help='look this many seconds in both directions '
-                                'to determine the local tempo and align the '
-                                'beats accordingly [default=%(default).2f]')
+            g.add_argument(
+                "--look_ahead",
+                action="store",
+                type=float,
+                default=look_ahead,
+                help="look this many seconds in both directions "
+                "to determine the local tempo and align the "
+                "beats accordingly [default=%(default).2f]",
+            )
         # return the argument group so it can be modified if needed
         return g
 
@@ -558,12 +586,13 @@ class BeatDetectionProcessor(BeatTrackingProcessor):
     array([0.11, 0.45, 0.79, 1.13, 1.47, 1.81, 2.15, 2.49])
 
     """
+
     LOOK_ASIDE = 0.2
 
     def __init__(self, look_aside=LOOK_ASIDE, fps=None, **kwargs):
-        super(BeatDetectionProcessor, self).__init__(look_aside=look_aside,
-                                                     look_ahead=None, fps=fps,
-                                                     **kwargs)
+        super(BeatDetectionProcessor, self).__init__(
+            look_aside=look_aside, look_ahead=None, fps=fps, **kwargs
+        )
 
 
 def _process_crf(process_tuple):
@@ -589,6 +618,7 @@ def _process_crf(process_tuple):
     """
     # pylint: disable=no-name-in-module
     from .beats_crf import best_sequence
+
     # activations, dominant_interval, interval_sigma = process_tuple
     return best_sequence(*process_tuple)
 
@@ -638,6 +668,7 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
     array([0.09, 0.79, 1.49])
 
     """
+
     INTERVAL_SIGMA = 0.18
     USE_FACTORS = False
     FACTORS = np.array([0.5, 0.67, 1.0, 1.5, 2.0])
@@ -648,8 +679,14 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
     ACT_SMOOTH = 0.09
     HIST_SMOOTH = 7
 
-    def __init__(self, interval_sigma=INTERVAL_SIGMA, use_factors=USE_FACTORS,
-                 num_intervals=NUM_INTERVALS, factors=FACTORS, **kwargs):
+    def __init__(
+        self,
+        interval_sigma=INTERVAL_SIGMA,
+        use_factors=USE_FACTORS,
+        num_intervals=NUM_INTERVALS,
+        factors=FACTORS,
+        **kwargs
+    ):
         super(CRFBeatDetectionProcessor, self).__init__(**kwargs)
         # save parameters
         self.interval_sigma = interval_sigma
@@ -657,12 +694,14 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
         self.num_intervals = num_intervals
         self.factors = factors
         # get num_threads from kwargs
-        num_threads = min(len(factors) if use_factors else num_intervals,
-                          kwargs.get('num_threads', 1))
+        num_threads = min(
+            len(factors) if use_factors else num_intervals, kwargs.get("num_threads", 1)
+        )
         # init a pool of workers (if needed)
         self.map = map
         if num_threads != 1:
             import multiprocessing as mp
+
             self.map = mp.Pool(num_threads).map
 
     def process(self, activations, **kwargs):
@@ -681,20 +720,25 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
 
         """
         import itertools as it
+
         # estimate the tempo
         tempi = self.tempo_estimator.process(activations)
-        intervals = self.fps * 60. / tempi[:, 0]
+        intervals = self.fps * 60.0 / tempi[:, 0]
 
         # compute possible intervals
         if self.use_factors:
             # use the dominant interval with different factors
             possible_intervals = [int(intervals[0] * f) for f in self.factors]
-            possible_intervals = [i for i in possible_intervals if
-                                  self.tempo_estimator.max_interval >= i >=
-                                  self.tempo_estimator.min_interval]
+            possible_intervals = [
+                i
+                for i in possible_intervals
+                if self.tempo_estimator.max_interval
+                >= i
+                >= self.tempo_estimator.min_interval
+            ]
         else:
             # take the top n intervals from the tempo estimator
-            possible_intervals = intervals[:self.num_intervals]
+            possible_intervals = intervals[: self.num_intervals]
 
         # sort and start from the greatest interval
         possible_intervals.sort()
@@ -707,13 +751,19 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
         # since the cython code uses memory views, we need to make sure that
         # the activations are C-contiguous and of C-type float (np.float32)
         contiguous_act = np.ascontiguousarray(activations, dtype=np.float32)
-        results = list(self.map(
-            _process_crf, zip(it.repeat(contiguous_act), possible_intervals,
-                              it.repeat(self.interval_sigma))))
+        results = list(
+            self.map(
+                _process_crf,
+                zip(
+                    it.repeat(contiguous_act),
+                    possible_intervals,
+                    it.repeat(self.interval_sigma),
+                ),
+            )
+        )
 
         # normalize their probabilities
-        normalized_seq_probabilities = np.array([r[1] / r[0].shape[0]
-                                                 for r in results])
+        normalized_seq_probabilities = np.array([r[1] / r[0].shape[0] for r in results])
         # pick the best one
         best_seq = results[normalized_seq_probabilities.argmax()][0]
 
@@ -721,9 +771,13 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
         return best_seq.astype(np.float) / self.fps
 
     @staticmethod
-    def add_arguments(parser, interval_sigma=INTERVAL_SIGMA,
-                      use_factors=USE_FACTORS, num_intervals=NUM_INTERVALS,
-                      factors=FACTORS):
+    def add_arguments(
+        parser,
+        interval_sigma=INTERVAL_SIGMA,
+        use_factors=USE_FACTORS,
+        num_intervals=NUM_INTERVALS,
+        factors=FACTORS,
+    ):
         """
         Add CRFBeatDetection related arguments to an existing parser.
 
@@ -749,25 +803,42 @@ class CRFBeatDetectionProcessor(BeatTrackingProcessor):
         """
         # pylint: disable=arguments-differ
         from ..utils import OverrideDefaultListAction
+
         # add CRF related arguments
-        g = parser.add_argument_group('conditional random field arguments')
-        g.add_argument('--interval_sigma', action='store', type=float,
-                       default=interval_sigma,
-                       help='allowed deviation from the dominant interval '
-                            '[default=%(default).2f]')
-        g.add_argument('--use_factors', action='store_true',
-                       default=use_factors,
-                       help='use dominant interval multiplied with factors '
-                            'instead of multiple estimated intervals '
-                            '[default=%(default)s]')
-        g.add_argument('--num_intervals', action='store', type=int,
-                       default=num_intervals, dest='num_intervals',
-                       help='number of estimated intervals to try '
-                            '[default=%(default)s]')
-        g.add_argument('--factors', action=OverrideDefaultListAction,
-                       default=factors, type=float, sep=',',
-                       help='(comma separated) list with factors of dominant '
-                            'interval to try [default=%(default)s]')
+        g = parser.add_argument_group("conditional random field arguments")
+        g.add_argument(
+            "--interval_sigma",
+            action="store",
+            type=float,
+            default=interval_sigma,
+            help="allowed deviation from the dominant interval "
+            "[default=%(default).2f]",
+        )
+        g.add_argument(
+            "--use_factors",
+            action="store_true",
+            default=use_factors,
+            help="use dominant interval multiplied with factors "
+            "instead of multiple estimated intervals "
+            "[default=%(default)s]",
+        )
+        g.add_argument(
+            "--num_intervals",
+            action="store",
+            type=int,
+            default=num_intervals,
+            dest="num_intervals",
+            help="number of estimated intervals to try " "[default=%(default)s]",
+        )
+        g.add_argument(
+            "--factors",
+            action=OverrideDefaultListAction,
+            default=factors,
+            type=float,
+            sep=",",
+            help="(comma separated) list with factors of dominant "
+            "interval to try [default=%(default)s]",
+        )
         return g
 
 
@@ -872,26 +943,40 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
     array([0.1 , 0.45, 0.8 , 1.12, 1.48, 1.8 , 2.15, 2.49])
 
     """
-    MIN_BPM = 55.
-    MAX_BPM = 215.
+
+    MIN_BPM = 55.0
+    MAX_BPM = 215.0
     NUM_TEMPI = None
     TRANSITION_LAMBDA = 100
     OBSERVATION_LAMBDA = 16
     THRESHOLD = 0
     CORRECT = True
 
-    def __init__(self, min_bpm=MIN_BPM, max_bpm=MAX_BPM, num_tempi=NUM_TEMPI,
-                 transition_lambda=TRANSITION_LAMBDA,
-                 observation_lambda=OBSERVATION_LAMBDA, correct=CORRECT,
-                 threshold=THRESHOLD, fps=None, online=False, **kwargs):
+    def __init__(
+        self,
+        min_bpm=MIN_BPM,
+        max_bpm=MAX_BPM,
+        num_tempi=NUM_TEMPI,
+        transition_lambda=TRANSITION_LAMBDA,
+        observation_lambda=OBSERVATION_LAMBDA,
+        correct=CORRECT,
+        threshold=THRESHOLD,
+        fps=None,
+        online=False,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         # pylint: disable=no-name-in-module
-        from .beats_hmm import (BeatStateSpace, BeatTransitionModel,
-                                RNNBeatTrackingObservationModel)
+        from .beats_hmm import (
+            BeatStateSpace,
+            BeatTransitionModel,
+            RNNBeatTrackingObservationModel,
+        )
         from ..ml.hmm import HiddenMarkovModel
+
         # convert timing information to construct a beat state space
-        min_interval = 60. * fps / max_bpm
-        max_interval = 60. * fps / min_bpm
+        min_interval = 60.0 * fps / max_bpm
+        max_interval = 60.0 * fps / min_bpm
         self.st = BeatStateSpace(min_interval, max_interval, num_tempi)
         # transition model
         self.tm = BeatTransitionModel(self.st, transition_lambda)
@@ -909,7 +994,7 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
         self.online = online
         # TODO: refactor the visualisation stuff
         if self.online:
-            self.visualize = kwargs.get('verbose', False)
+            self.visualize = kwargs.get("verbose", False)
             self.counter = 0
             self.beat_counter = 0
             self.strength = 0
@@ -949,8 +1034,7 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
         first = 0
         # use only the activations > threshold
         if self.threshold:
-            activations, first = threshold_activations(activations,
-                                                       self.threshold)
+            activations, first = threshold_activations(activations, self.threshold)
         # return no beats if no activations given / remain after thresholding
         if not activations.any():
             return beats
@@ -982,7 +1066,8 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
         else:
             # just take the frames with the smallest beat state values
             from scipy.signal import argrelmin
-            beats = argrelmin(self.st.state_positions[path], mode='wrap')[0]
+
+            beats = argrelmin(self.st.state_positions[path], mode="wrap")[0]
             # recheck if they are within the "beat range", i.e. the pointers
             # of the observation model for that state must be 1
             # Note: interpolation and alignment of the beats to be at state 0
@@ -1024,14 +1109,14 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
         # visualisation stuff (only when called frame by frame)
         if self.visualize and len(activations) == 1:
             beat_length = 80
-            display = [' '] * beat_length
-            display[int(positions * beat_length)] = '*'
+            display = [" "] * beat_length
+            display[int(positions * beat_length)] = "*"
             # activation strength indicator
             strength_length = 10
             self.strength = int(max(self.strength, activations * 10))
-            display.append('| ')
-            display.extend(['*'] * self.strength)
-            display.extend([' '] * (strength_length - self.strength))
+            display.append("| ")
+            display.extend(["*"] * self.strength)
+            display.extend([" "] * (strength_length - self.strength))
             # reduce the displayed strength every couple of frames
             if self.counter % 5 == 0:
                 self.strength -= 1
@@ -1039,25 +1124,25 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
             if beats:
                 self.beat_counter = 3
             if self.beat_counter > 0:
-                display.append('| X ')
+                display.append("| X ")
             else:
-                display.append('|   ')
+                display.append("|   ")
             self.beat_counter -= 1
             # display tempo
-            display.append('| %5.1f | ' % self.tempo)
-            sys.stderr.write('\r%s' % ''.join(display))
+            display.append("| %5.1f | " % self.tempo)
+            sys.stderr.write("\r%s" % "".join(display))
             sys.stderr.flush()
         # forward path often reports multiple beats close together, thus report
         # only beats more than the minimum interval apart
         beats_ = []
         for frame in np.nonzero(beats)[0]:
             cur_beat = (frame + self.counter) / float(self.fps)
-            next_beat = self.last_beat + 60. / self.max_bpm
+            next_beat = self.last_beat + 60.0 / self.max_bpm
             # FIXME: this skips the first beat, but maybe this has a positive
             #        effect on the overall beat tracking accuracy
             if cur_beat >= next_beat:
                 # update tempo
-                self.tempo = 60. / (cur_beat - self.last_beat)
+                self.tempo = 60.0 / (cur_beat - self.last_beat)
                 # update last beat
                 self.last_beat = cur_beat
                 # append to beats
@@ -1072,10 +1157,16 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
     process_viterbi = process_offline
 
     @staticmethod
-    def add_arguments(parser, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
-                      num_tempi=NUM_TEMPI, transition_lambda=TRANSITION_LAMBDA,
-                      observation_lambda=OBSERVATION_LAMBDA,
-                      threshold=THRESHOLD, correct=CORRECT):
+    def add_arguments(
+        parser,
+        min_bpm=MIN_BPM,
+        max_bpm=MAX_BPM,
+        num_tempi=NUM_TEMPI,
+        transition_lambda=TRANSITION_LAMBDA,
+        observation_lambda=OBSERVATION_LAMBDA,
+        threshold=THRESHOLD,
+        correct=CORRECT,
+    ):
         """
         Add DBN related arguments to an existing parser object.
 
@@ -1111,46 +1202,79 @@ class DBNBeatTrackingProcessor(OnlineProcessor):
         """
         # pylint: disable=arguments-differ
         # add DBN parser group
-        g = parser.add_argument_group('dynamic Bayesian Network arguments')
+        g = parser.add_argument_group("dynamic Bayesian Network arguments")
         # add a transition parameters
-        g.add_argument('--min_bpm', action='store', type=float,
-                       default=min_bpm,
-                       help='minimum tempo [bpm, default=%(default).2f]')
-        g.add_argument('--max_bpm', action='store', type=float,
-                       default=max_bpm,
-                       help='maximum tempo [bpm,  default=%(default).2f]')
-        g.add_argument('--num_tempi', action='store', type=int,
-                       default=num_tempi,
-                       help='limit the number of tempi; if set, align the '
-                            'tempi with a log spacing, otherwise linearly')
-        g.add_argument('--transition_lambda', action='store', type=float,
-                       default=transition_lambda,
-                       help='lambda of the tempo transition distribution; '
-                            'higher values prefer a constant tempo over a '
-                            'tempo change from one beat to the next one '
-                            '[default=%(default).1f]')
+        g.add_argument(
+            "--min_bpm",
+            action="store",
+            type=float,
+            default=min_bpm,
+            help="minimum tempo [bpm, default=%(default).2f]",
+        )
+        g.add_argument(
+            "--max_bpm",
+            action="store",
+            type=float,
+            default=max_bpm,
+            help="maximum tempo [bpm,  default=%(default).2f]",
+        )
+        g.add_argument(
+            "--num_tempi",
+            action="store",
+            type=int,
+            default=num_tempi,
+            help="limit the number of tempi; if set, align the "
+            "tempi with a log spacing, otherwise linearly",
+        )
+        g.add_argument(
+            "--transition_lambda",
+            action="store",
+            type=float,
+            default=transition_lambda,
+            help="lambda of the tempo transition distribution; "
+            "higher values prefer a constant tempo over a "
+            "tempo change from one beat to the next one "
+            "[default=%(default).1f]",
+        )
         # observation model stuff
-        g.add_argument('--observation_lambda', action='store', type=float,
-                       default=observation_lambda,
-                       help='split one beat period into N parts, the first '
-                            'representing beat states and the remaining '
-                            'non-beat states [default=%(default)i]')
-        g.add_argument('-t', dest='threshold', action='store', type=float,
-                       default=threshold,
-                       help='threshold the observations before Viterbi '
-                            'decoding [default=%(default).2f]')
+        g.add_argument(
+            "--observation_lambda",
+            action="store",
+            type=float,
+            default=observation_lambda,
+            help="split one beat period into N parts, the first "
+            "representing beat states and the remaining "
+            "non-beat states [default=%(default)i]",
+        )
+        g.add_argument(
+            "-t",
+            dest="threshold",
+            action="store",
+            type=float,
+            default=threshold,
+            help="threshold the observations before Viterbi "
+            "decoding [default=%(default).2f]",
+        )
         # option to correct the beat positions
         if correct:
-            g.add_argument('--no_correct', dest='correct',
-                           action='store_false', default=correct,
-                           help='do not correct the beat positions (i.e. do '
-                                'not align them to the nearest peak of the '
-                                'beat activation function)')
+            g.add_argument(
+                "--no_correct",
+                dest="correct",
+                action="store_false",
+                default=correct,
+                help="do not correct the beat positions (i.e. do "
+                "not align them to the nearest peak of the "
+                "beat activation function)",
+            )
         else:
-            g.add_argument('--correct', dest='correct',
-                           action='store_true', default=correct,
-                           help='correct the beat positions (i.e. align them '
-                                'to the nearest peak of the beat activation'
-                                'function)')
+            g.add_argument(
+                "--correct",
+                dest="correct",
+                action="store_true",
+                default=correct,
+                help="correct the beat positions (i.e. align them "
+                "to the nearest peak of the beat activation"
+                "function)",
+            )
         # return the argument group so it can be modified if needed
         return g

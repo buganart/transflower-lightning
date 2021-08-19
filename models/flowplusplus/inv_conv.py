@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import scipy.linalg
 
+
 class InvertibleConv1x1(nn.Module):
     def __init__(self, num_channels, LU_decomposed=True):
         super().__init__()
@@ -21,8 +22,8 @@ class InvertibleConv1x1(nn.Module):
             np_u = np.triu(np_u, k=1)
             l_mask = np.tril(np.ones(w_shape, dtype=np.float32), -1)
             eye = np.eye(*w_shape, dtype=np.float32)
-            self.register_buffer('p', torch.Tensor(np_p.astype(np.float32)))
-            self.register_buffer('sign_s', torch.Tensor(np_sign_s.astype(np.float32)))
+            self.register_buffer("p", torch.Tensor(np_p.astype(np.float32)))
+            self.register_buffer("sign_s", torch.Tensor(np_sign_s.astype(np.float32)))
             self.l = nn.Parameter(torch.Tensor(np_l.astype(np.float32)))
             self.log_s = nn.Parameter(torch.Tensor(np_log_s.astype(np.float32)))
             self.u = nn.Parameter(torch.Tensor(np_u.astype(np.float32)))
@@ -41,8 +42,11 @@ class InvertibleConv1x1(nn.Module):
             if not reverse:
                 weight = self.weight.view(w_shape[0], w_shape[1], 1, 1)
             else:
-                weight = torch.inverse(self.weight.double()).float()\
-                              .view(w_shape[0], w_shape[1], 1, 1)
+                weight = (
+                    torch.inverse(self.weight.double())
+                    .float()
+                    .view(w_shape[0], w_shape[1], 1, 1)
+                )
             return weight, dlogdet
         else:
             self.p = self.p.to(input.device)
@@ -50,7 +54,9 @@ class InvertibleConv1x1(nn.Module):
             self.l_mask = self.l_mask.to(input.device)
             self.eye = self.eye.to(input.device)
             l = self.l * self.l_mask + self.eye
-            u = self.u * self.l_mask.transpose(0, 1).contiguous() + torch.diag(self.sign_s * torch.exp(self.log_s))
+            u = self.u * self.l_mask.transpose(0, 1).contiguous() + torch.diag(
+                self.sign_s * torch.exp(self.log_s)
+            )
             dlogdet = self.log_s.sum() * input.size(2) * input.size(3)
             if not reverse:
                 w = torch.matmul(self.p, torch.matmul(l, u))
@@ -100,6 +106,7 @@ class InvConv(nn.Module):
         random_init (bool): Initialize with a random orthogonal matrix.
             Otherwise initialize with noisy identity.
     """
+
     def __init__(self, num_channels, random_init=False):
         super(InvConv, self).__init__()
         self.num_channels = num_channels
@@ -110,8 +117,9 @@ class InvConv(nn.Module):
             w_init = np.linalg.qr(w_init)[0]
         else:
             # Initialize as identity permutation with some noise
-            w_init = np.eye(self.num_channels, self.num_channels) \
-                     + 1e-3 * np.random.randn(self.num_channels, self.num_channels)
+            w_init = np.eye(
+                self.num_channels, self.num_channels
+            ) + 1e-3 * np.random.randn(self.num_channels, self.num_channels)
         self.weight = nn.Parameter(torch.from_numpy(w_init.astype(np.float32)))
 
     def forward(self, x, cond, sldj, reverse=False):

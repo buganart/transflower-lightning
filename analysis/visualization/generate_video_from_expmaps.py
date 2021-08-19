@@ -11,9 +11,18 @@ import joblib as jl
 from .utils import generate_video_from_images, join_video_and_audio
 
 import matplotlib
+
 matplotlib.use("Agg")
 
-def generate_video_from_expmaps(features_file, pipeline_file, output_folder, audio_file, trim_audio=0, generate_bvh=False):
+
+def generate_video_from_expmaps(
+    features_file,
+    pipeline_file,
+    output_folder,
+    audio_file,
+    trim_audio=0,
+    generate_bvh=False,
+):
     data = np.load(features_file)
     # pipeline = jl.load("data/scaled_features/motion_data_pipe.sav")
     # containing_path = os.path.dirname(features_file)
@@ -23,21 +32,19 @@ def generate_video_from_expmaps(features_file, pipeline_file, output_folder, aud
     filename = os.path.basename(features_file)
     seq_id = filename.split(".")[0]
 
-    bvh_data=pipeline.inverse_transform([data[:,0,:]])
+    bvh_data = pipeline.inverse_transform([data[:, 0, :]])
     if generate_bvh:
         writer = BVHWriter()
-        with open(output_folder+"/"+seq_id+".bvh",'w') as f:
+        with open(output_folder + "/" + seq_id + ".bvh", "w") as f:
             writer.write(bvh_data[0], f)
 
-    bvh2pos = MocapParameterizer('position')
+    bvh2pos = MocapParameterizer("position")
     pos_data = bvh2pos.fit_transform(bvh_data)
-    video_file = f'{output_folder}/{seq_id}.mp4'
-    #render_mp4(pos_data[0], video_file, axis_scale=100, elev=45, azim=45)
+    video_file = f"{output_folder}/{seq_id}.mp4"
+    # render_mp4(pos_data[0], video_file, axis_scale=100, elev=45, azim=45)
 
     render_mp4(pos_data[0], video_file, axis_scale=300, elev=45, azim=45)
     if audio_file is not None:
         join_video_and_audio(video_file, audio_file, trim_audio)
     # draw_stickfigure3d(pos_data[0], 10)
     # sketch_move(pos_data[0], data=None, ax=None, figsize=(16,8)):
-
-

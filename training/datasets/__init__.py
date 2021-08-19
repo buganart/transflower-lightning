@@ -4,6 +4,7 @@ from .base_dataset import BaseDataset
 import numpy as np
 import torch
 
+
 def find_dataset_using_name(dataset_name):
     # Given the option --dataset_name [datasetname],
     # the file "data/datasetname_dataset.py"
@@ -23,15 +24,20 @@ def find_dataset_using_name(dataset_name):
         return next(iter(subclass.__bases__)).__module__.endswith(superclass.__module__)
 
     dataset = None
-    target_dataset_name = dataset_name.replace('_', '') + 'dataset'
+    target_dataset_name = dataset_name.replace("_", "") + "dataset"
     for name, cls in datasetlib.__dict__.items():
         if name.lower() == target_dataset_name.lower():
-            if is_subclass(cls, BaseDataset) or any(is_subclass(cls_b, BaseDataset) for cls_b in cls.__bases__):
+            if is_subclass(cls, BaseDataset) or any(
+                is_subclass(cls_b, BaseDataset) for cls_b in cls.__bases__
+            ):
                 dataset = cls
 
     if dataset is None:
-        raise NotImplementedError("In {}.py, there should be a subclass of BaseDataset with class name that matches {} in lowercase.".format(
-            dataset_filename, target_dataset_name))
+        raise NotImplementedError(
+            "In {}.py, there should be a subclass of BaseDataset with class name that matches {} in lowercase.".format(
+                dataset_filename, target_dataset_name
+            )
+        )
 
     return dataset
 
@@ -43,29 +49,52 @@ def get_option_setter(dataset_name):
 
 def create_dataset(opt, split="train", *args, **kwargs):
     dataset = find_dataset_using_name(opt.dataset_name)
-    instance = dataset(opt, split, *args,**kwargs)
-    print('dataset [{}] was created {}'.format(instance.name(), "(val)" if split=="val" else ''))
+    instance = dataset(opt, split, *args, **kwargs)
+    print(
+        "dataset [{}] was created {}".format(
+            instance.name(), "(val)" if split == "val" else ""
+        )
+    )
     return instance
 
-def paired_collate_fn(insts,tgt_dim=2):
-    src_insts= list(map(lambda x: x['input'],insts))
-    tgt_insts = list(map(lambda x: x['target'],insts))
-    src_insts = collate_fn(src_insts,dim=2)
-    tgt_insts = collate_fn(tgt_insts,dim=tgt_dim)
-    return {'input':src_insts, 'target':tgt_insts}
 
-def collate_fn(insts,dim=-1): #dim is time dim
-    ''' Pad the instance to the max seq length in batch '''
+def paired_collate_fn(insts, tgt_dim=2):
+    src_insts = list(map(lambda x: x["input"], insts))
+    tgt_insts = list(map(lambda x: x["target"], insts))
+    src_insts = collate_fn(src_insts, dim=2)
+    tgt_insts = collate_fn(tgt_insts, dim=tgt_dim)
+    return {"input": src_insts, "target": tgt_insts}
+
+
+def collate_fn(insts, dim=-1):  # dim is time dim
+    """ Pad the instance to the max seq length in batch """
 
     max_len = max(inst.shape[dim] for inst in insts)
 
     # print(max_len)
     batch_seq = [
-        torch.cat([inst.long(),torch.full(inst.shape[:dim]+((max_len - inst.shape[dim]),)+inst.shape[dim+1:],PAD_STATE).long()],dim)
-        for inst in insts]
+        torch.cat(
+            [
+                inst.long(),
+                torch.full(
+                    inst.shape[:dim]
+                    + ((max_len - inst.shape[dim]),)
+                    + inst.shape[dim + 1 :],
+                    PAD_STATE,
+                ).long(),
+            ],
+            dim,
+        )
+        for inst in insts
+    ]
 
-    batch_pos = np.array([
-        [pos_i+1 for pos_i in range(inst.shape[dim])] + [PAD_STATE]*(max_len - inst.shape[dim]) for inst in insts])
+    batch_pos = np.array(
+        [
+            [pos_i + 1 for pos_i in range(inst.shape[dim])]
+            + [PAD_STATE] * (max_len - inst.shape[dim])
+            for inst in insts
+        ]
+    )
 
     batch_seq = torch.stack(batch_seq)
     # print(batch_seq)
@@ -73,11 +102,14 @@ def collate_fn(insts,dim=-1): #dim is time dim
 
     return batch_seq, batch_pos
 
+
 def transformer_paired_collate_fn(insts):
-    return paired_collate_fn(insts,tgt_dim=2)
+    return paired_collate_fn(insts, tgt_dim=2)
+
 
 def wavenet_paired_collate_fn(insts):
-    return paired_collate_fn(insts,tgt_dim=1)
+    return paired_collate_fn(insts, tgt_dim=1)
+
 
 def meta_collate_fn(pad_batches, model):
     if pad_batches:
@@ -88,14 +120,21 @@ def meta_collate_fn(pad_batches, model):
     else:
         return default_collate
 
+
 from torch.utils.data.dataloader import default_collate
+
+
 def create_dataloader(dataset, split="train"):
-    is_eval = (split == "val" or split == "test")
-    return DataLoader(dataset,
-                      batch_size=dataset.opt.batch_size if not is_eval else dataset.opt.val_batch_size,
-                      shuffle=not is_eval,
-                      # collate_fn=meta_collate_fn(dataset.opt.pad_batches,dataset.opt.model),
-                      collate_fn=None,
-                      #pin_memory=True,
-                      drop_last=True,
-                      num_workers=dataset.opt.workers)
+    is_eval = split == "val" or split == "test"
+    return DataLoader(
+        dataset,
+        batch_size=dataset.opt.batch_size
+        if not is_eval
+        else dataset.opt.val_batch_size,
+        shuffle=not is_eval,
+        # collate_fn=meta_collate_fn(dataset.opt.pad_batches,dataset.opt.model),
+        collate_fn=None,
+        # pin_memory=True,
+        drop_last=True,
+        num_workers=dataset.opt.workers,
+    )

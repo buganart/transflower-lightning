@@ -1,7 +1,7 @@
 import torch.nn as nn
 
 
-def get_param_groups(net, weight_decay, norm_suffix='weight_g', verbose=False):
+def get_param_groups(net, weight_decay, norm_suffix="weight_g", verbose=False):
     """Get two parameter groups from `net`: One named "normalized" which will
     override the optimizer with `weight_decay`, and one named "unnormalized"
     which will inherit all hyperparameters from the optimizer.
@@ -20,12 +20,14 @@ def get_param_groups(net, weight_decay, norm_suffix='weight_g', verbose=False):
         else:
             unnorm_params.append(p)
 
-    param_groups = [{'name': 'normalized', 'params': norm_params, 'weight_decay': weight_decay},
-                    {'name': 'unnormalized', 'params': unnorm_params}]
+    param_groups = [
+        {"name": "normalized", "params": norm_params, "weight_decay": weight_decay},
+        {"name": "unnormalized", "params": unnorm_params},
+    ]
 
     if verbose:
-        print('{} normalized parameters'.format(len(norm_params)))
-        print('{} unnormalized parameters'.format(len(unnorm_params)))
+        print("{} normalized parameters".format(len(norm_params)))
+        print("{} unnormalized parameters".format(len(unnorm_params)))
 
     return param_groups
 
@@ -39,10 +41,14 @@ class WNConv2d(nn.Module):
         padding (int): Padding to add on edges of input.
         bias (bool): Use bias in the convolution operation.
     """
+
     def __init__(self, in_channels, out_channels, kernel_size, padding, bias=True):
         super(WNConv2d, self).__init__()
         self.conv = nn.utils.weight_norm(
-            nn.Conv2d(in_channels, out_channels, kernel_size, padding=padding, bias=bias))
+            nn.Conv2d(
+                in_channels, out_channels, kernel_size, padding=padding, bias=bias
+            )
+        )
 
     def forward(self, x):
         x = self.conv(x)

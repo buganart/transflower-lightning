@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 from models.util import concat_elu, WNConv2d
 
+
 class NN(nn.Module):
     """Neural network used to parametrize the transformations of an MLCoupling.
 
@@ -29,26 +30,44 @@ class NN(nn.Module):
         use_attn (bool): Use attention in each block.
         aux_channels (int): Number of channels in optional auxiliary input.
     """
-    def __init__(self, in_channels, out_channels, num_channels, num_blocks, num_components, drop_prob, use_attn=True, aux_channels=None):
-        #import pdb;pdb.set_trace()
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_channels,
+        num_blocks,
+        num_components,
+        drop_prob,
+        use_attn=True,
+        aux_channels=None,
+    ):
+        # import pdb;pdb.set_trace()
         super(NN, self).__init__()
         self.k = num_components  # k = number of mixture components
         self.in_conv = WNConv2d(in_channels, num_channels, kernel_size=3, padding=1)
         self.share_attn_params = False
         if self.share_attn_params:
-            self.mid_conv = ConvAttnBlock(num_channels, drop_prob, use_attn, aux_channels)
+            self.mid_conv = ConvAttnBlock(
+                num_channels, drop_prob, use_attn, aux_channels
+            )
             self.num_blocks = num_blocks
         else:
-            self.mid_convs = nn.ModuleList([ConvAttnBlock(num_channels, drop_prob, use_attn, aux_channels)
-                                            for _ in range(num_blocks)])
-        self.out_conv = WNConv2d(num_channels, out_channels * (2 + 3 * self.k),
-                                 kernel_size=3, padding=1)
+            self.mid_convs = nn.ModuleList(
+                [
+                    ConvAttnBlock(num_channels, drop_prob, use_attn, aux_channels)
+                    for _ in range(num_blocks)
+                ]
+            )
+        self.out_conv = WNConv2d(
+            num_channels, out_channels * (2 + 3 * self.k), kernel_size=3, padding=1
+        )
         self.rescale = weight_norm(Rescale(out_channels))
         self.out_channels = out_channels
 
     def forward(self, x, aux=None):
         b, c, h, w = x.size()
-        #import pdb;pdb.set_trace()
+        # import pdb;pdb.set_trace()
         x = self.in_conv(x)
         if self.share_attn_params:
             for _ in range(self.num_blocks):
@@ -58,7 +77,7 @@ class NN(nn.Module):
                 x = conv(x, aux)
         x = self.out_conv(x)
 
-        #import pdb;pdb.set_trace()
+        # import pdb;pdb.set_trace()
         # Split into components and post-process
         x = x.view(b, -1, self.out_channels, h, w)
         s, t, pi, mu, scales = x.split((1, 1, self.k, self.k, self.k), dim=1)
@@ -107,7 +126,8 @@ class GatedAttn(nn.Module):
         num_heads (int): Number of attention heads.
         drop_prob (float): Dropout probability.
     """
-    def __init__(self, d_model, num_heads=4, drop_prob=0.):
+
+    def __init__(self, d_model, num_heads=4, drop_prob=0.0):
         super(GatedAttn, self).__init__()
         self.d_model = d_model
         self.num_heads = num_heads
@@ -126,8 +146,10 @@ class GatedAttn(nn.Module):
         # Compute q, k, v
         memory, query = torch.split(self.in_proj(x), (2 * c, c), dim=-1)
         q = self.split_last_dim(query, self.num_heads)
-        k, v = [self.split_last_dim(tensor, self.num_heads)
-                for tensor in torch.split(memory, self.d_model, dim=2)]
+        k, v = [
+            self.split_last_dim(tensor, self.num_heads)
+            for tensor in torch.split(memory, self.d_model, dim=2)
+        ]
 
         # Compute attention and reshape
         key_depth_per_head = self.d_model // self.num_heads
@@ -201,10 +223,10 @@ class GatedAttn(nn.Module):
     def get_pos_enc(seq_len, num_channels, device):
         position = torch.arange(seq_len, dtype=torch.float32, device=device)
         num_timescales = num_channels // 2
-        log_timescale_increment = math.log(10000.) / (num_timescales - 1)
-        inv_timescales = torch.arange(num_timescales,
-                                      dtype=torch.float32,
-                                      device=device)
+        log_timescale_increment = math.log(10000.0) / (num_timescales - 1)
+        inv_timescales = torch.arange(
+            num_timescales, dtype=torch.float32, device=device
+        )
         inv_timescales *= -log_timescale_increment
         inv_timescales = inv_timescales.exp_()
         scaled_time = position.unsqueeze(1) * inv_timescales.unsqueeze(0)
@@ -225,14 +247,19 @@ class GatedConv(nn.Module):
         drop_prob (float): Dropout probability.
         aux_channels (int): Number of channels in optional auxiliary input.
     """
-    def __init__(self, num_channels, drop_prob=0., aux_channels=None):
+
+    def __init__(self, num_channels, drop_prob=0.0, aux_channels=None):
         super(GatedConv, self).__init__()
         self.nlin = concat_elu
         self.conv = WNConv2d(2 * num_channels, num_channels, kernel_size=3, padding=1)
         self.drop = nn.Dropout2d(drop_prob)
-        self.gate = WNConv2d(2 * num_channels, 2 * num_channels, kernel_size=1, padding=0)
+        self.gate = WNConv2d(
+            2 * num_channels, 2 * num_channels, kernel_size=1, padding=0
+        )
         if aux_channels is not None:
-            self.aux_conv = WNConv2d(2 * aux_channels, num_channels, kernel_size=1, padding=0)
+            self.aux_conv = WNConv2d(
+                2 * aux_channels, num_channels, kernel_size=1, padding=0
+            )
         else:
             self.aux_conv = None
 

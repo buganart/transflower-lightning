@@ -1,6 +1,6 @@
 import pickle
 
-thing = pickle.load(open("SMPL_MALE.pkl","rb"), encoding="latin1")
+thing = pickle.load(open("SMPL_MALE.pkl", "rb"), encoding="latin1")
 
 thing.keys()
 
@@ -18,10 +18,16 @@ import torch
 
 # smpl_poses, smpl_scaling, smpl_trans = AISTDataset.load_motion(
 #     "../multimodal-transformer/data/motions", "gWA_sFM_cAll_d26_mWA1_ch09")
-smpl_thing = pickle.load(open("../../../aistplusplus_api/last.generated.test.pkl", "rb"))
-smpl_poses,smpl_scaling,smpl_trans = smpl_thing['smpl_poses'], smpl_thing['smpl_scaling'], smpl_thing['smpl_trans']
-#MY PICKLE IS PROBABLY WRONG
-smpl = SMPL(model_path="../../../aistplusplus_api", gender='MALE', batch_size=1)
+smpl_thing = pickle.load(
+    open("../../../aistplusplus_api/last.generated.test.pkl", "rb")
+)
+smpl_poses, smpl_scaling, smpl_trans = (
+    smpl_thing["smpl_poses"],
+    smpl_thing["smpl_scaling"],
+    smpl_thing["smpl_trans"],
+)
+# MY PICKLE IS PROBABLY WRONG
+smpl = SMPL(model_path="../../../aistplusplus_api", gender="MALE", batch_size=1)
 output = smpl.forward(
     global_orient=torch.from_numpy(smpl_poses[:, 0:1]).float(),
     body_pose=torch.from_numpy(smpl_poses[:, 1:]).float(),
@@ -35,7 +41,9 @@ output.vertices.shape
 smpl_poses.shape
 keypoints3d.shape
 
-keypoints3d = keypoints3d[:,:24] # the body joints (ignoring the head, feet and hand bones added onto it here https://github.com/vchoutas/smplx/blob/7547ee6656b942a68a97604d0cf7b6b834fad9eb/smplx/vertex_joint_selector.py)
+keypoints3d = keypoints3d[
+    :, :24
+]  # the body joints (ignoring the head, feet and hand bones added onto it here https://github.com/vchoutas/smplx/blob/7547ee6656b942a68a97604d0cf7b6b834fad9eb/smplx/vertex_joint_selector.py)
 print(keypoints3d)
 # # that file takes the position of the vertices corresponding to certain joints
 #

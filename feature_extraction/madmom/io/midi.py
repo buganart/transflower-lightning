@@ -18,8 +18,7 @@ DEFAULT_TIME_SIGNATURE = (4, 4)
 
 # TODO: remove these unit conversion functions after upstream PR is merged
 #       https://github.com/olemb/mido/pull/114
-def tick2second(tick, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
-                tempo=DEFAULT_TEMPO):
+def tick2second(tick, ticks_per_beat=DEFAULT_TICKS_PER_BEAT, tempo=DEFAULT_TEMPO):
     """
     Convert absolute time in ticks to seconds.
 
@@ -34,8 +33,7 @@ def tick2second(tick, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
     return tick * scale
 
 
-def second2tick(second, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
-                tempo=DEFAULT_TEMPO):
+def second2tick(second, ticks_per_beat=DEFAULT_TICKS_PER_BEAT, tempo=DEFAULT_TEMPO):
     """
     Convert absolute time in seconds to ticks.
 
@@ -60,7 +58,7 @@ def bpm2tempo(bpm, time_signature=DEFAULT_TIME_SIGNATURE):
     returned BPM depend on the time signature.
 
     """
-    return int(round(60 * 1e6 / bpm * time_signature[1] / 4.))
+    return int(round(60 * 1e6 / bpm * time_signature[1] / 4.0))
 
 
 def tempo2bpm(tempo, time_signature=DEFAULT_TIME_SIGNATURE):
@@ -73,11 +71,12 @@ def tempo2bpm(tempo, time_signature=DEFAULT_TIME_SIGNATURE):
     returned tempo depends on the time signature.
 
     """
-    return 60 * 1e6 / tempo * time_signature[1] / 4.
+    return 60 * 1e6 / tempo * time_signature[1] / 4.0
 
 
-def tick2beat(tick, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
-              time_signature=DEFAULT_TIME_SIGNATURE):
+def tick2beat(
+    tick, ticks_per_beat=DEFAULT_TICKS_PER_BEAT, time_signature=DEFAULT_TIME_SIGNATURE
+):
     """
     Convert ticks to beats.
 
@@ -85,11 +84,12 @@ def tick2beat(tick, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
     quarter note, also called PPQN) and time signature.
 
     """
-    return tick / (4. * ticks_per_beat / time_signature[1])
+    return tick / (4.0 * ticks_per_beat / time_signature[1])
 
 
-def beat2tick(beat, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
-              time_signature=DEFAULT_TIME_SIGNATURE):
+def beat2tick(
+    beat, ticks_per_beat=DEFAULT_TICKS_PER_BEAT, time_signature=DEFAULT_TIME_SIGNATURE
+):
     """
     Convert beats to ticks.
 
@@ -97,7 +97,7 @@ def beat2tick(beat, ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
     quarter note, also called PPQN) and time signature.
 
     """
-    return int(round(beat * 4. * ticks_per_beat / time_signature[1]))
+    return int(round(beat * 4.0 * ticks_per_beat / time_signature[1]))
 
 
 class MIDIFile(mido.MidiFile):
@@ -210,12 +210,19 @@ class MIDIFile(mido.MidiFile):
 
     """
 
-    def __init__(self, filename=None, file_format=0,
-                 ticks_per_beat=DEFAULT_TICKS_PER_BEAT, unit='seconds',
-                 timing='absolute', **kwargs):
+    def __init__(
+        self,
+        filename=None,
+        file_format=0,
+        ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
+        unit="seconds",
+        timing="absolute",
+        **kwargs
+    ):
         # instantiate a MIDIFile
-        super(MIDIFile, self).__init__(filename=filename, type=file_format,
-                                       ticks_per_beat=ticks_per_beat, **kwargs)
+        super(MIDIFile, self).__init__(
+            filename=filename, type=file_format, ticks_per_beat=ticks_per_beat, **kwargs
+        )
         # add attributes for unit conversion
         self.unit = unit
         self.timing = timing
@@ -234,34 +241,35 @@ class MIDIFile(mido.MidiFile):
         for msg in mido.merge_tracks(self.tracks):
             # Convert relative message time to desired unit
             if msg.time > 0:
-                if self.unit.lower() in ('t', 'ticks'):
+                if self.unit.lower() in ("t", "ticks"):
                     delta = msg.time
-                elif self.unit.lower() in ('s', 'sec', 'seconds'):
+                elif self.unit.lower() in ("s", "sec", "seconds"):
                     delta = tick2second(msg.time, self.ticks_per_beat, tempo)
-                elif self.unit.lower() in ('b', 'beats'):
-                    delta = tick2beat(msg.time, self.ticks_per_beat,
-                                      time_signature)
+                elif self.unit.lower() in ("b", "beats"):
+                    delta = tick2beat(msg.time, self.ticks_per_beat, time_signature)
                 else:
-                    raise ValueError("`unit` must be either 'ticks', 't', "
-                                     "'seconds', 's', 'beats', 'b', not %s." %
-                                     self.unit)
+                    raise ValueError(
+                        "`unit` must be either 'ticks', 't', "
+                        "'seconds', 's', 'beats', 'b', not %s." % self.unit
+                    )
             else:
                 delta = 0
             # Convert relative time to absolute values if needed
-            if self.timing.lower() in ('a', 'abs', 'absolute'):
+            if self.timing.lower() in ("a", "abs", "absolute"):
                 cum_delta += delta
-            elif self.timing.lower() in ('r', 'rel', 'relative'):
+            elif self.timing.lower() in ("r", "rel", "relative"):
                 cum_delta = delta
             else:
-                raise ValueError("`timing` must be either 'relative', 'rel', "
-                                 "'r', or 'absolute', 'abs', 'a', not %s." %
-                                 self.timing)
+                raise ValueError(
+                    "`timing` must be either 'relative', 'rel', "
+                    "'r', or 'absolute', 'abs', 'a', not %s." % self.timing
+                )
 
             yield msg.copy(time=cum_delta)
 
-            if msg.type == 'set_tempo':
+            if msg.type == "set_tempo":
                 tempo = msg.tempo
-            elif msg.type == 'time_signature':
+            elif msg.type == "time_signature":
                 time_signature = (msg.numerator, msg.denominator)
 
     def __repr__(self):
@@ -286,7 +294,7 @@ class MIDIFile(mido.MidiFile):
         tempi = []
         # process all events
         for msg in self:
-            if msg.type == 'set_tempo':
+            if msg.type == "set_tempo":
                 tempi.append((msg.time, msg.tempo))
         # make sure a tempo is set (and occurs at time 0)
         if not tempi or tempi[0][0] > 0:
@@ -314,12 +322,13 @@ class MIDIFile(mido.MidiFile):
         signatures = []
         # process all events
         for msg in self:
-            if msg.type == 'time_signature':
+            if msg.type == "time_signature":
                 signatures.append((msg.time, msg.numerator, msg.denominator))
         # make sure a signatures is set (and occurs at time 0)
         if not signatures or signatures[0][0] > 0:
-            signatures.insert(0, (0, DEFAULT_TIME_SIGNATURE[0],
-                                  DEFAULT_TIME_SIGNATURE[1]))
+            signatures.insert(
+                0, (0, DEFAULT_TIME_SIGNATURE[0], DEFAULT_TIME_SIGNATURE[1])
+            )
         # return time signatures
         return np.asarray(signatures, dtype=np.float)
 
@@ -348,8 +357,8 @@ class MIDIFile(mido.MidiFile):
         # process all events
         for msg in self:
             # use only note on or note off events
-            note_on = msg.type == 'note_on'
-            note_off = msg.type == 'note_off'
+            note_on = msg.type == "note_on"
+            note_off = msg.type == "note_off"
             if not (note_on or note_off):
                 continue
             # hash sounding note
@@ -361,12 +370,18 @@ class MIDIFile(mido.MidiFile):
             # end note if it's a 'note off' event or 'note on' with velocity 0
             elif note_off or (note_on and msg.velocity == 0):
                 if note not in sounding_notes:
-                    warnings.warn('ignoring MIDI message %s' % msg)
+                    warnings.warn("ignoring MIDI message %s" % msg)
                     continue
                 # append the note to the list
-                notes.append((sounding_notes[note][0], msg.note,
-                              msg.time - sounding_notes[note][0],
-                              sounding_notes[note][1], msg.channel))
+                notes.append(
+                    (
+                        sounding_notes[note][0],
+                        msg.note,
+                        msg.time - sounding_notes[note][0],
+                        sounding_notes[note][1],
+                        msg.channel,
+                    )
+                )
                 # remove hash from dict
                 del sounding_notes[note]
 
@@ -395,7 +410,7 @@ class MIDIFile(mido.MidiFile):
         for msg in self:
             last_msg_time = msg.time
             # keep track of sustain information
-            if msg.type == 'control_change' and msg.control == 64:
+            if msg.type == "control_change" and msg.control == 64:
                 sustain_msgs.append(msg)
         # if the last sustain message is 'sustain on', append a fake sustain
         # message to end sustain with the last note
@@ -437,10 +452,10 @@ class MIDIFile(mido.MidiFile):
                 # end all notes with i) offsets between sustain start and end
                 sustained = np.logical_and(
                     note_offsets >= sustain_starts[msg.channel],
-                    note_offsets <= msg.time)
+                    note_offsets <= msg.time,
+                )
                 # and ii) same channel
-                sustained = np.logical_and(sustained,
-                                           notes[:, 4] == msg.channel)
+                sustained = np.logical_and(sustained, notes[:, 4] == msg.channel)
                 # update duration of notes (sustain end time - onset time)
                 notes[sustained, 2] = msg.time - notes[sustained, 0]
                 # remove sustain start time for this channel
@@ -449,15 +464,19 @@ class MIDIFile(mido.MidiFile):
         for pitch in np.unique(notes[:, 1]):
             note_idx = np.nonzero(notes[:, 1] == pitch)[0]
             max_duration = np.diff(notes[note_idx, 0])
-            notes[note_idx[:-1], 2] = np.minimum(notes[note_idx[:-1], 2],
-                                                 max_duration)
+            notes[note_idx[:-1], 2] = np.minimum(notes[note_idx[:-1], 2], max_duration)
         # finally return notes
         return notes
 
     @classmethod
-    def from_notes(cls, notes, unit='seconds', tempo=DEFAULT_TEMPO,
-                   time_signature=DEFAULT_TIME_SIGNATURE,
-                   ticks_per_beat=DEFAULT_TICKS_PER_BEAT):
+    def from_notes(
+        cls,
+        notes,
+        unit="seconds",
+        tempo=DEFAULT_TEMPO,
+        time_signature=DEFAULT_TIME_SIGNATURE,
+        ticks_per_beat=DEFAULT_TICKS_PER_BEAT,
+    ):
         """
         Create a MIDIFile from the given notes.
 
@@ -497,8 +516,9 @@ class MIDIFile(mido.MidiFile):
 
         """
         # create new MIDI file
-        midi_file = cls(file_format=0, ticks_per_beat=ticks_per_beat,
-                        unit=unit, timing='absolute')
+        midi_file = cls(
+            file_format=0, ticks_per_beat=ticks_per_beat, unit=unit, timing="absolute"
+        )
         # convert tempo
         if tempo <= 1000:
             # convert from bpm to tempo
@@ -509,10 +529,14 @@ class MIDIFile(mido.MidiFile):
             tempo = int(tempo * time_signature[1] / 4)
         # create new track and add tempo and time signature information
         track = midi_file.add_track()
-        track.append(mido.MetaMessage('set_tempo', tempo=tempo))
-        track.append(mido.MetaMessage('time_signature',
-                                      numerator=time_signature[0],
-                                      denominator=time_signature[1]))
+        track.append(mido.MetaMessage("set_tempo", tempo=tempo))
+        track.append(
+            mido.MetaMessage(
+                "time_signature",
+                numerator=time_signature[0],
+                denominator=time_signature[1],
+            )
+        )
         # create note on/off messages with absolute timing
         messages = []
         for note in notes:
@@ -527,11 +551,13 @@ class MIDIFile(mido.MidiFile):
             offset = onset + duration
             # create MIDI messages
             onset = second2tick(onset, ticks_per_beat, tempo)
-            note_on = mido.Message('note_on', time=onset, note=pitch,
-                                   velocity=velocity, channel=channel)
+            note_on = mido.Message(
+                "note_on", time=onset, note=pitch, velocity=velocity, channel=channel
+            )
             offset = second2tick(offset, ticks_per_beat, tempo)
-            note_off = mido.Message('note_off', time=offset, note=pitch,
-                                    channel=channel)
+            note_off = mido.Message(
+                "note_off", time=offset, note=pitch, channel=channel
+            )
             # append to list
             messages.extend([note_on, note_off])
         # sort them, convert to relative timing and append to track
@@ -552,8 +578,9 @@ class MIDIFile(mido.MidiFile):
 
         """
         from . import open_file
+
         # write the MIDI stream
-        with open_file(filename, 'wb') as f:
+        with open_file(filename, "wb") as f:
             self._save(f)
 
 
@@ -607,6 +634,7 @@ def write_midi(notes, filename, duration=0.6, velocity=100):
 
     """
     from ..utils import expand_notes
+
     # expand the array to have a default duration and velocity
     notes = expand_notes(notes, duration, velocity)
     # write the notes to the file and return them

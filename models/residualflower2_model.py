@@ -10,6 +10,7 @@ import argparse
 from argparse import Namespace
 import models
 
+
 class Residualflower2Model(BaseModel):
     def __init__(self, opt):
         super().__init__(opt)
@@ -17,23 +18,25 @@ class Residualflower2Model(BaseModel):
         opt_vars = vars(opt)
         mean_vars = self.get_argvars(opt.mean_model, opt)
         mean_opt = opt_vars.copy()
-        for k,v in mean_vars.items():
-            val = mean_opt["mean_"+k]
+        for k, v in mean_vars.items():
+            val = mean_opt["mean_" + k]
             if k not in mean_opt:
                 mean_opt[k] = val
-            del mean_opt["mean_"+k]
+            del mean_opt["mean_" + k]
         mean_opt = Namespace(**mean_opt)
         self.mean_model = models.create_model_by_name(opt.mean_model, mean_opt)
 
         residual_vars = self.get_argvars(opt.residual_model, opt)
         residual_opt = opt_vars.copy()
-        for k,v in residual_vars.items():
-            val = residual_opt["residual_"+k]
+        for k, v in residual_vars.items():
+            val = residual_opt["residual_" + k]
             if k not in residual_opt:
                 residual_opt[k] = val
-            del residual_opt["residual_"+k]
+            del residual_opt["residual_" + k]
         residual_opt = Namespace(**residual_opt)
-        self.residual_model = models.create_model_by_name(opt.residual_model, residual_opt)
+        self.residual_model = models.create_model_by_name(
+            opt.residual_model, residual_opt
+        )
 
         self.mean_loss = nn.MSELoss()
         self.mse_loss = 0
@@ -51,29 +54,29 @@ class Residualflower2Model(BaseModel):
 
     @staticmethod
     def modify_commandline_options(parser, opt):
-        parser.add_argument('--dropout', type=float, default=0.1)
-        parser.add_argument('--mean_model', type=str, default="transformer")
-        parser.add_argument('--residual_model', type=str, default="transflower")
+        parser.add_argument("--dropout", type=float, default=0.1)
+        parser.add_argument("--mean_model", type=str, default="transformer")
+        parser.add_argument("--residual_model", type=str, default="transflower")
         opt2, _ = parser.parse_known_args()
         mean_vars = Residualflower2Model.get_argvars(opt2.mean_model, opt)
-        for k,v in mean_vars.items():
+        for k, v in mean_vars.items():
             # print(k)
             if type(v) != type(True):
                 if type(v) != type(None):
-                    parser.add_argument('--mean_'+k, type=type(v), default=v)
+                    parser.add_argument("--mean_" + k, type=type(v), default=v)
                 else:
-                    parser.add_argument('--mean_'+k, default=v)
+                    parser.add_argument("--mean_" + k, default=v)
             else:
-                parser.add_argument('--mean_'+k, action="store_true")
+                parser.add_argument("--mean_" + k, action="store_true")
         residual_vars = Residualflower2Model.get_argvars(opt2.residual_model, opt)
-        for k,v in residual_vars.items():
+        for k, v in residual_vars.items():
             if type(v) != type(True):
                 if type(v) != type(None):
-                    parser.add_argument('--residual_'+k, type=type(v), default=v)
+                    parser.add_argument("--residual_" + k, type=type(v), default=v)
                 else:
-                    parser.add_argument('--residual_'+k, default=v)
+                    parser.add_argument("--residual_" + k, default=v)
             else:
-                parser.add_argument('--residual_'+k, action="store_true")
+                parser.add_argument("--residual_" + k, action="store_true")
         return parser
 
     def forward(self, data):
@@ -82,10 +85,10 @@ class Residualflower2Model(BaseModel):
         predicted_residuals = self.residual_model(data)
         outputs = []
         for i, mod in enumerate(self.output_mods):
-            outputs.append(predicted_means[i]+predicted_residuals[i])
+            outputs.append(predicted_means[i] + predicted_residuals[i])
         return outputs
 
-    #def generate(self,features, teacher_forcing=False):
+    # def generate(self,features, teacher_forcing=False):
     #    inputs_ = []
     #    for i,mod in enumerate(self.input_mods):
     #        input_ = features["in_"+mod]
@@ -103,11 +106,13 @@ class Residualflower2Model(BaseModel):
         predicted_means = self.mean_model(self.inputs)
         mse_loss = 0
         for i, mod in enumerate(self.output_mods):
-            mse_loss += 100*self.mean_loss(predicted_means[i], self.targets[i])
+            mse_loss += 100 * self.mean_loss(predicted_means[i], self.targets[i])
 
         for i, mod in enumerate(self.output_mods):
             # import pdb;pdb.set_trace()
-            batch["out_"+mod] = batch["out_"+mod] - predicted_means[i].permute(1,0,2)
+            batch["out_" + mod] = batch["out_" + mod] - predicted_means[i].permute(
+                1, 0, 2
+            )
 
         # self.residual_model.set_inputs(batch)
         nll_loss = self.residual_model.training_step(batch, batch_idx)
@@ -116,21 +121,29 @@ class Residualflower2Model(BaseModel):
         self.nll_loss = nll_loss
         # print("mse_loss: ", mse_loss)
         # print("nll_loss: ", nll_loss)
-        self.log('mse_loss', mse_loss)
-        self.log('nll_loss', nll_loss)
-        self.log('loss', loss)
+        self.log("mse_loss", mse_loss)
+        self.log("nll_loss", nll_loss)
+        self.log("loss", loss)
         return loss
 
     def test_step(self, batch, batch_idx):
         self.eval()
         loss = self.training_step(batch, batch_idx)
         # print(loss)
-        return {"test_loss": loss, "test_mse_loss": self.mse_loss, "test_nll_loss": self.nll_loss}
+        return {
+            "test_loss": loss,
+            "test_mse_loss": self.mse_loss,
+            "test_nll_loss": self.nll_loss,
+        }
 
     def test_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['test_loss'] for x in outputs]).mean()
-        avg_mse_loss = torch.stack([x['test_mse_loss'] for x in outputs]).mean()
-        avg_nll_loss = torch.stack([x['test_nll_loss'] for x in outputs]).mean()
-        logs = {'test_loss': avg_loss, 'test_mse_loss': avg_mse_loss, 'test_nll_loss': avg_nll_loss}
+        avg_loss = torch.stack([x["test_loss"] for x in outputs]).mean()
+        avg_mse_loss = torch.stack([x["test_mse_loss"] for x in outputs]).mean()
+        avg_nll_loss = torch.stack([x["test_nll_loss"] for x in outputs]).mean()
+        logs = {
+            "test_loss": avg_loss,
+            "test_mse_loss": avg_mse_loss,
+            "test_nll_loss": avg_nll_loss,
+        }
 
-        return {'log': logs}
+        return {"log": logs}

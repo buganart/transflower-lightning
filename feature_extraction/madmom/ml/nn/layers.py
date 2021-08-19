@@ -42,7 +42,7 @@ class Layer(object):
             Activations for this data.
 
         """
-        raise NotImplementedError('must be implemented by subclass.')
+        raise NotImplementedError("must be implemented by subclass.")
 
     def reset(self):
         """
@@ -111,8 +111,7 @@ class RecurrentLayer(FeedForwardLayer):
 
     """
 
-    def __init__(self, weights, bias, recurrent_weights, activation_fn,
-                 init=None):
+    def __init__(self, weights, bias, recurrent_weights, activation_fn, init=None):
         super(RecurrentLayer, self).__init__(weights, bias, activation_fn)
         self.recurrent_weights = recurrent_weights
         if init is None:
@@ -125,7 +124,7 @@ class RecurrentLayer(FeedForwardLayer):
         # copy everything to a picklable object
         state = self.__dict__.copy()
         # do not pickle attributes needed for stateful processing
-        state.pop('_prev', None)
+        state.pop("_prev", None)
         return state
 
     def __setstate__(self, state):
@@ -133,7 +132,7 @@ class RecurrentLayer(FeedForwardLayer):
         self.__dict__.update(state)
         # TODO: old models do not have the init attribute, thus create it
         #       remove this initialisation code after updating the models
-        if not hasattr(self, 'init'):
+        if not hasattr(self, "init"):
             self.init = np.zeros(self.bias.size, dtype=NN_DTYPE)
         # add non-pickled attributes needed for stateful processing
         self._prev = self.init
@@ -253,10 +252,17 @@ class Gate(RecurrentLayer):
 
     """
 
-    def __init__(self, weights, bias, recurrent_weights, peephole_weights=None,
-                 activation_fn=sigmoid):
-        super(Gate, self).__init__(weights, bias, recurrent_weights,
-                                   activation_fn=activation_fn)
+    def __init__(
+        self,
+        weights,
+        bias,
+        recurrent_weights,
+        peephole_weights=None,
+        activation_fn=sigmoid,
+    ):
+        super(Gate, self).__init__(
+            weights, bias, recurrent_weights, activation_fn=activation_fn
+        )
         if peephole_weights is not None:
             peephole_weights = peephole_weights.flatten()
         self.peephole_weights = peephole_weights
@@ -316,8 +322,9 @@ class Cell(Gate):
     """
 
     def __init__(self, weights, bias, recurrent_weights, activation_fn=tanh):
-        super(Cell, self).__init__(weights, bias, recurrent_weights,
-                                   activation_fn=activation_fn)
+        super(Cell, self).__init__(
+            weights, bias, recurrent_weights, activation_fn=activation_fn
+        )
 
 
 class LSTMLayer(RecurrentLayer):
@@ -343,8 +350,16 @@ class LSTMLayer(RecurrentLayer):
 
     """
 
-    def __init__(self, input_gate, forget_gate, cell, output_gate,
-                 activation_fn=tanh, init=None, cell_init=None):
+    def __init__(
+        self,
+        input_gate,
+        forget_gate,
+        cell,
+        output_gate,
+        activation_fn=tanh,
+        init=None,
+        cell_init=None,
+    ):
         self.input_gate = input_gate
         self.forget_gate = forget_gate
         self.cell = cell
@@ -364,8 +379,8 @@ class LSTMLayer(RecurrentLayer):
         # copy everything to a picklable object
         state = self.__dict__.copy()
         # do not pickle attributes needed for stateful processing
-        state.pop('_prev', None)
-        state.pop('_state', None)
+        state.pop("_prev", None)
+        state.pop("_state", None)
         return state
 
     def __setstate__(self, state):
@@ -373,9 +388,9 @@ class LSTMLayer(RecurrentLayer):
         self.__dict__.update(state)
         # TODO: old models do not have the init attributes, thus create them
         #       remove this initialisation code after updating the models
-        if not hasattr(self, 'init'):
+        if not hasattr(self, "init"):
             self.init = np.zeros(self.cell.bias.size, dtype=NN_DTYPE)
-        if not hasattr(self, 'cell_init'):
+        if not hasattr(self, "cell_init"):
             self.cell_init = np.zeros(self.cell.bias.size, dtype=NN_DTYPE)
         # add non-pickled attributes needed for stateful processing
         self._prev = self.init
@@ -486,8 +501,7 @@ class GRUCell(Cell):
     """
 
     def __init__(self, weights, bias, recurrent_weights, activation_fn=tanh):
-        super(GRUCell, self).__init__(weights, bias, recurrent_weights,
-                                      activation_fn)
+        super(GRUCell, self).__init__(weights, bias, recurrent_weights, activation_fn)
 
     def activate(self, data, prev, reset_gate):
         """
@@ -564,7 +578,7 @@ class GRULayer(RecurrentLayer):
         # copy everything to a picklable object
         state = self.__dict__.copy()
         # do not pickle attributes needed for stateful processing
-        state.pop('_prev', None)
+        state.pop("_prev", None)
         return state
 
     def __setstate__(self, state):
@@ -572,17 +586,21 @@ class GRULayer(RecurrentLayer):
         #       remove this unpickling code after updating all models
         try:
             import warnings
-            warnings.warn('Please update your GRU models by loading them and '
-                          'saving them again. Loading old models will not work'
-                          ' from version 0.18 onwards.', RuntimeWarning)
-            state['init'] = state.pop('hid_init')
+
+            warnings.warn(
+                "Please update your GRU models by loading them and "
+                "saving them again. Loading old models will not work"
+                " from version 0.18 onwards.",
+                RuntimeWarning,
+            )
+            state["init"] = state.pop("hid_init")
         except KeyError:
             pass
         # restore pickled instance attributes
         self.__dict__.update(state)
         # TODO: old models do not have the init attributes, thus create them
         #       remove this initialisation code after updating the models
-        if not hasattr(self, 'init'):
+        if not hasattr(self, "init"):
             self.init = np.zeros(self.cell.bias.size, dtype=NN_DTYPE)
         # add non-pickled attributes needed for stateful processing
         self._prev = self.init
@@ -662,8 +680,8 @@ def _kernel_margins(kernel_shape, margin_shift):
         Indices determining the valid part of the convolution output.
     """
 
-    start_x = int(np.floor(kernel_shape[0] / 2.))
-    start_y = int(np.floor(kernel_shape[1] / 2.))
+    start_x = int(np.floor(kernel_shape[0] / 2.0))
+    start_y = int(np.floor(kernel_shape[1] / 2.0))
 
     margin_shift = -1 if margin_shift else 0
     if kernel_shape[0] % 2 == 0:
@@ -699,6 +717,7 @@ try:
     def _convolve(x, k):
         sx, ex, sy, ey = _kernel_margins(k.shape, margin_shift=False)
         return _do_convolve(x, -1, k[::-1, ::-1])[sx:ex, sy:ey]
+
 
 except ImportError:
     # scipy.ndimage.convolution behaves slightly differently with
@@ -760,13 +779,12 @@ class ConvolutionalLayer(FeedForwardLayer):
 
     """
 
-    def __init__(self, weights, bias, stride=1, pad='valid',
-                 activation_fn=linear):
+    def __init__(self, weights, bias, stride=1, pad="valid", activation_fn=linear):
         super(ConvolutionalLayer, self).__init__(weights, bias, activation_fn)
         if stride != 1:
-            raise NotImplementedError('only `stride` == 1 implemented.')
+            raise NotImplementedError("only `stride` == 1 implemented.")
         self.stride = stride
-        if pad != 'valid':
+        if pad != "valid":
             raise NotImplementedError('only `pad` == "valid" implemented.')
         self.pad = pad
 
@@ -793,15 +811,16 @@ class ConvolutionalLayer(FeedForwardLayer):
         num_frames, num_bins, num_channels = data.shape
         num_channels_w, num_features, size_time, size_freq = self.weights.shape
         if num_channels_w != num_channels:
-            raise ValueError('Number of channels in weight vector different '
-                             'from number of channels of input data!')
+            raise ValueError(
+                "Number of channels in weight vector different "
+                "from number of channels of input data!"
+            )
         # adjust the output number of frames and bins depending on `pad`
         # TODO: this works only with pad='valid'
-        num_frames -= (size_time - 1)
-        num_bins -= (size_freq - 1)
+        num_frames -= size_time - 1
+        num_bins -= size_freq - 1
         # init the output array with Fortran ordering (column major)
-        out = np.zeros((num_frames, num_bins, num_features),
-                       dtype=NN_DTYPE, order='F')
+        out = np.zeros((num_frames, num_bins, num_features), dtype=NN_DTYPE, order="F")
         # iterate over all channels
         for c in range(num_channels):
             channel = data[:, :, c]
@@ -844,7 +863,8 @@ class StrideLayer(Layer):
         """
         # re-arrange the data for the following dense layer
         from ...utils import segment_axis
-        data = segment_axis(data, self.block_size, 1, axis=0, end='cut')
+
+        data = segment_axis(data, self.block_size, 1, axis=0, end="cut")
         return data.reshape(len(data), -1)
 
 
@@ -884,12 +904,17 @@ class MaxPoolLayer(Layer):
 
         """
         from scipy.ndimage.filters import maximum_filter
+
         # define which part of the maximum filtered data to return
         slice_dim_1 = slice(self.size[0] // 2, None, self.stride[0])
         slice_dim_2 = slice(self.size[1] // 2, None, self.stride[1])
         # TODO: is constant mode the most appropriate?
-        data = [maximum_filter(data[:, :, c], self.size, mode='constant')
-                [slice_dim_1, slice_dim_2] for c in range(data.shape[2])]
+        data = [
+            maximum_filter(data[:, :, c], self.size, mode="constant")[
+                slice_dim_1, slice_dim_2
+            ]
+            for c in range(data.shape[2])
+        ]
         # join channels and return as array
         return np.dstack(data)
 
@@ -1002,7 +1027,7 @@ class ReshapeLayer(Layer):
 
     """
 
-    def __init__(self, newshape, order='C'):
+    def __init__(self, newshape, order="C"):
         self.newshape = newshape
         self.order = order
 
@@ -1063,8 +1088,7 @@ class AverageLayer(Layer):
             Averaged data.
 
         """
-        return np.mean(data, axis=self.axis, dtype=self.dtype,
-                       keepdims=self.keepdims)
+        return np.mean(data, axis=self.axis, dtype=self.dtype, keepdims=self.keepdims)
 
 
 class PadLayer(Layer):
@@ -1082,7 +1106,7 @@ class PadLayer(Layer):
 
     """
 
-    def __init__(self, width, axes, value=0.):
+    def __init__(self, width, axes, value=0.0):
         self.width = width
         self.axes = axes
         self.value = value

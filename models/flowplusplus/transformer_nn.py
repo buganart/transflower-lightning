@@ -4,8 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.nn.utils import weight_norm
-from models.util import concat_elu #,WNConv2d
+from models.util import concat_elu  # ,WNConv2d
 from models.transformer import BasicTransformerModel
+
 
 class TransformerNN(nn.Module):
     """Neural network used to parametrize the transformations of an MLCoupling.
@@ -30,12 +31,37 @@ class TransformerNN(nn.Module):
         use_attn (bool): Use attention in each block.
         aux_channels (int): Number of channels in optional auxiliary input.
     """
-    def __init__(self, in_channels, out_channels, num_channels, num_layers, num_heads, num_components, drop_prob, use_pos_emb, use_rel_pos_emb, input_length, concat_dims, output_length):
-        #import pdb;pdb.set_trace()
+
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        num_channels,
+        num_layers,
+        num_heads,
+        num_components,
+        drop_prob,
+        use_pos_emb,
+        use_rel_pos_emb,
+        input_length,
+        concat_dims,
+        output_length,
+    ):
+        # import pdb;pdb.set_trace()
         super(TransformerNN, self).__init__()
         self.k = num_components  # k = number of mixture components
         # import pdb;pdb.set_trace()
-        self.transformer = BasicTransformerModel(out_channels * (2 + 3 * self.k), in_channels, num_heads, num_channels, num_layers, drop_prob, use_pos_emb=use_pos_emb, use_rel_pos_emb=use_rel_pos_emb, input_length=input_length)
+        self.transformer = BasicTransformerModel(
+            out_channels * (2 + 3 * self.k),
+            in_channels,
+            num_heads,
+            num_channels,
+            num_layers,
+            drop_prob,
+            use_pos_emb=use_pos_emb,
+            use_rel_pos_emb=use_rel_pos_emb,
+            input_length=input_length,
+        )
         self.rescale = weight_norm(Rescale(out_channels))
         self.out_channels = out_channels
         self.concat_dims = concat_dims
@@ -44,9 +70,11 @@ class TransformerNN(nn.Module):
     def forward(self, x, aux=None):
         b, c, h, w = x.size()
         # import pdb;pdb.set_trace()
-        x = x.squeeze(-1) # only squeeze the w dimension (important coz otherwise it would squeeze batch dim if theres only one element in minibatch..
+        x = x.squeeze(
+            -1
+        )  # only squeeze the w dimension (important coz otherwise it would squeeze batch dim if theres only one element in minibatch..
         # import pdb;pdb.set_trace()
-        x = x.permute(2,0,1)
+        x = x.permute(2, 0, 1)
         # import pdb;pdb.set_trace()
         if self.concat_dims:
             x = self.transformer(x)
@@ -54,9 +82,9 @@ class TransformerNN(nn.Module):
             # x = 0.5*x + 0.5*torch.mean(x, dim=0, keepdim=True)
             # x = self.transformer(x)[:1]
         else:
-            x = self.transformer(x)[:self.output_length]
+            x = self.transformer(x)[: self.output_length]
         # import pdb;pdb.set_trace()
-        x = x.permute(1,2,0)
+        x = x.permute(1, 2, 0)
         # Split into components and post-process
         if self.concat_dims:
             x = x.view(b, -1, self.out_channels, h, w)
@@ -69,6 +97,7 @@ class TransformerNN(nn.Module):
         scales = scales.clamp(min=-7)  # From the code in original Flow++ paper
 
         return s, t, pi, mu, scales
+
 
 class Rescale(nn.Module):
     """Per-channel rescaling. Need a proper `nn.Module` so we can wrap it

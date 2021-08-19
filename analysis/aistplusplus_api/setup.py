@@ -14,16 +14,15 @@
 # limitations under the License.
 import setuptools
 
-INSTALL_REQUIREMENTS = [
-    'absl-py', 'numpy', 'opencv-python', 'ffmpeg-python']
+INSTALL_REQUIREMENTS = ["absl-py", "numpy", "opencv-python", "ffmpeg-python"]
 
 setuptools.setup(
-    name='aist_plusplus_api',
-    url='https://github.com/google/aistplusplus_api',
-    description='API for supporting AIST++ Dataset.',
-    version='1.0.0',
-    author='Ruilong Li',
-    author_email='ruilongli94@gmail.com',
+    name="aist_plusplus_api",
+    url="https://github.com/google/aistplusplus_api",
+    description="API for supporting AIST++ Dataset.",
+    version="1.0.0",
+    author="Ruilong Li",
+    author_email="ruilongli94@gmail.com",
     packages=setuptools.find_packages(),
-    install_requires=INSTALL_REQUIREMENTS
+    install_requires=INSTALL_REQUIREMENTS,
 )

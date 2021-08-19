@@ -14,8 +14,13 @@ from scipy.ndimage import uniform_filter
 from scipy.ndimage.filters import maximum_filter, minimum_filter
 
 from ..audio.signal import smooth as smooth_signal
-from ..processors import (BufferProcessor, OnlineProcessor, ParallelProcessor,
-                          Processor, SequentialProcessor, )
+from ..processors import (
+    BufferProcessor,
+    OnlineProcessor,
+    ParallelProcessor,
+    Processor,
+    SequentialProcessor,
+)
 from ..utils import combine_events
 
 EPSILON = np.spacing(1)
@@ -79,17 +84,18 @@ def correlation_diff(spec, diff_frames=1, pos=False, diff_bins=1):
     for f in range(diff_frames, frames):
         # correlate the frame with the previous one
         # resulting size = bins * 2 - 1
-        c = np.correlate(spec[f], spec[f - diff_frames], mode='full')
+        c = np.correlate(spec[f], spec[f - diff_frames], mode="full")
         # save the middle part
         centre = len(c) / 2
-        corr[f] = c[centre - diff_bins: centre + diff_bins + 1]
+        corr[f] = c[centre - diff_bins : centre + diff_bins + 1]
         # shift the frame for difference calculation according to the
         # highest peak in correlation
         bin_offset = diff_bins - np.argmax(corr[f])
         bin_start = diff_bins + bin_offset
         bin_stop = bins - 2 * diff_bins + bin_start
-        diff_spec[f, diff_bins:-diff_bins] = spec[f, diff_bins:-diff_bins] - \
-            spec[f - diff_frames, bin_start:bin_stop]
+        diff_spec[f, diff_bins:-diff_bins] = (
+            spec[f, diff_bins:-diff_bins] - spec[f - diff_frames, bin_start:bin_stop]
+        )
     # keep only positive values
     if pos:
         np.maximum(diff_spec, 0, diff_spec)
@@ -153,10 +159,10 @@ def spectral_diff(spectrogram, diff_frames=None):
 
     """
     from madmom.audio.spectrogram import SpectrogramDifference
+
     # if the diff of a spectrogram is given, do not calculate the diff twice
     if not isinstance(spectrogram, SpectrogramDifference):
-        spectrogram = spectrogram.diff(diff_frames=diff_frames,
-                                       positive_diffs=True)
+        spectrogram = spectrogram.diff(diff_frames=diff_frames, positive_diffs=True)
     # Spectral diff is the sum of all squared positive 1st order differences
     return np.asarray(np.sum(spectrogram ** 2, axis=1))
 
@@ -186,10 +192,10 @@ def spectral_flux(spectrogram, diff_frames=None):
 
     """
     from madmom.audio.spectrogram import SpectrogramDifference
+
     # if the diff of a spectrogram is given, do not calculate the diff twice
     if not isinstance(spectrogram, SpectrogramDifference):
-        spectrogram = spectrogram.diff(diff_frames=diff_frames,
-                                       positive_diffs=True)
+        spectrogram = spectrogram.diff(diff_frames=diff_frames, positive_diffs=True)
     # Spectral flux is the sum of all positive 1st order differences
     return np.asarray(np.sum(spectrogram, axis=1))
 
@@ -232,19 +238,21 @@ def superflux(spectrogram, diff_frames=None, diff_max_bins=3):
 
     """
     from madmom.audio.spectrogram import SpectrogramDifference
+
     # if the diff of a spectrogram is given, do not calculate the diff twice
     if not isinstance(spectrogram, SpectrogramDifference):
-        spectrogram = spectrogram.diff(diff_frames=diff_frames,
-                                       diff_max_bins=diff_max_bins,
-                                       positive_diffs=True)
+        spectrogram = spectrogram.diff(
+            diff_frames=diff_frames, diff_max_bins=diff_max_bins, positive_diffs=True
+        )
     # SuperFlux is the sum of all positive 1st order max. filtered differences
     return np.asarray(np.sum(spectrogram, axis=1))
 
 
 # TODO: should this be its own class so that we can set the filter
 #       sizes in seconds instead of frames?
-def complex_flux(spectrogram, diff_frames=None, diff_max_bins=3,
-                 temporal_filter=3, temporal_origin=0):
+def complex_flux(
+    spectrogram, diff_frames=None, diff_max_bins=3, temporal_filter=3, temporal_origin=0
+):
     """
     ComplexFlux.
 
@@ -284,8 +292,7 @@ def complex_flux(spectrogram, diff_frames=None, diff_max_bins=3,
     # maximum filter along the temporal axis
     # TODO: use HPSS instead of simple temporal filtering
     if temporal_filter > 0:
-        lgd = maximum_filter(lgd, size=[temporal_filter, 1],
-                             origin=temporal_origin)
+        lgd = maximum_filter(lgd, size=[temporal_filter, 1], origin=temporal_origin)
     # lgd = uniform_filter(lgd, size=[1, 3])  # better for percussive onsets
     # create the weighting mask
     try:
@@ -306,15 +313,15 @@ def complex_flux(spectrogram, diff_frames=None, diff_max_bins=3,
             if stop_bin > num_bins:
                 stop_bin = num_bins
             # set mask
-            mask[:, b] = np.amin(lgd[:, start_bin: stop_bin], axis=1)
+            mask[:, b] = np.amin(lgd[:, start_bin:stop_bin], axis=1)
     except AttributeError:
         # if the spectrogram is not filtered, use a simple minimum filter
         # covering only the current bin and its neighbours
         mask = minimum_filter(lgd, size=[1, 3])
     # sum all positive 1st order max. filtered and weighted differences
-    diff = spectrogram.diff(diff_frames=diff_frames,
-                            diff_max_bins=diff_max_bins,
-                            positive_diffs=True)
+    diff = spectrogram.diff(
+        diff_frames=diff_frames, diff_max_bins=diff_max_bins, positive_diffs=True
+    )
     return np.asarray(np.sum(diff * mask, axis=1))
 
 
@@ -356,8 +363,9 @@ def modified_kullback_leibler(spectrogram, diff_frames=1, epsilon=EPSILON):
     if epsilon <= 0:
         raise ValueError("a positive value must be added before division")
     mkl = np.zeros_like(spectrogram)
-    mkl[diff_frames:] = (spectrogram[diff_frames:] /
-                         (spectrogram[:-diff_frames] + epsilon))
+    mkl[diff_frames:] = spectrogram[diff_frames:] / (
+        spectrogram[:-diff_frames] + epsilon
+    )
     # note: the original MKL uses sum instead of mean,
     # but the range of mean is much more suitable
     return np.asarray(np.mean(np.log(1 + mkl), axis=1))
@@ -441,7 +449,7 @@ def weighted_phase_deviation(spectrogram):
     phase = spectrogram.stft.phase()
     # make sure the spectrogram is not filtered before
     if np.shape(phase) != np.shape(spectrogram):
-        raise ValueError('spectrogram and phase must be of same shape')
+        raise ValueError("spectrogram and phase must be of same shape")
     # weighted_phase_deviation = spectrogram * phase_deviation
     wpd = np.abs(_phase_deviation(phase) * spectrogram)
     return np.asarray(np.mean(wpd, axis=1))
@@ -509,7 +517,7 @@ def _complex_domain(spectrogram):
     phase = spectrogram.stft.phase()
     # make sure the spectrogram is not filtered before
     if np.shape(phase) != np.shape(spectrogram):
-        raise ValueError('spectrogram and phase must be of same shape')
+        raise ValueError("spectrogram and phase must be of same shape")
     # expected spectrogram
     cd_target = np.zeros_like(phase)
     # assume constant phase change
@@ -643,24 +651,35 @@ class SpectralOnsetProcessor(SequentialProcessor):
 
     """
 
-    METHODS = ['superflux', 'complex_flux', 'high_frequency_content',
-               'spectral_diff', 'spectral_flux', 'modified_kullback_leibler',
-               'phase_deviation', 'weighted_phase_deviation',
-               'normalized_weighted_phase_deviation', 'complex_domain',
-               'rectified_complex_domain']
+    METHODS = [
+        "superflux",
+        "complex_flux",
+        "high_frequency_content",
+        "spectral_diff",
+        "spectral_flux",
+        "modified_kullback_leibler",
+        "phase_deviation",
+        "weighted_phase_deviation",
+        "normalized_weighted_phase_deviation",
+        "complex_domain",
+        "rectified_complex_domain",
+    ]
 
-    def __init__(self, onset_method='spectral_flux', **kwargs):
+    def __init__(self, onset_method="spectral_flux", **kwargs):
         import inspect
         from ..audio.signal import SignalProcessor, FramedSignalProcessor
         from ..audio.stft import ShortTimeFourierTransformProcessor
-        from ..audio.spectrogram import (SpectrogramProcessor,
-                                         FilteredSpectrogramProcessor,
-                                         LogarithmicSpectrogramProcessor)
+        from ..audio.spectrogram import (
+            SpectrogramProcessor,
+            FilteredSpectrogramProcessor,
+            LogarithmicSpectrogramProcessor,
+        )
+
         # for certain methods we need to circular shift the signal before STFT
-        if any(odf in onset_method for odf in ('phase', 'complex')):
-            kwargs['circular_shift'] = True
+        if any(odf in onset_method for odf in ("phase", "complex")):
+            kwargs["circular_shift"] = True
         # always use mono signals
-        kwargs['num_channels'] = 1
+        kwargs["num_channels"] = 1
         # define processing chain
         sig = SignalProcessor(**kwargs)
         frames = FramedSignalProcessor(**kwargs)
@@ -668,18 +687,20 @@ class SpectralOnsetProcessor(SequentialProcessor):
         spec = SpectrogramProcessor(**kwargs)
         processors = [sig, frames, stft, spec]
         # filtering needed?
-        if 'filterbank' in kwargs.keys() and kwargs['filterbank'] is not None:
+        if "filterbank" in kwargs.keys() and kwargs["filterbank"] is not None:
             processors.append(FilteredSpectrogramProcessor(**kwargs))
         # scaling needed?
-        if 'log' in kwargs.keys() and kwargs['log'] is not None:
+        if "log" in kwargs.keys() and kwargs["log"] is not None:
             processors.append(LogarithmicSpectrogramProcessor(**kwargs))
         # odf function
         if not inspect.isfunction(onset_method):
             try:
                 onset_method = globals()[onset_method]
             except KeyError:
-                raise ValueError('%s not a valid onset detection function, '
-                                 'choose %s.' % (onset_method, self.METHODS))
+                raise ValueError(
+                    "%s not a valid onset detection function, "
+                    "choose %s." % (onset_method, self.METHODS)
+                )
             processors.append(onset_method)
         # instantiate a SequentialProcessor
         super(SpectralOnsetProcessor, self).__init__(processors)
@@ -703,12 +724,15 @@ class SpectralOnsetProcessor(SequentialProcessor):
 
         """
         # add onset detection method arguments to the existing parser
-        g = parser.add_argument_group('spectral onset detection arguments')
+        g = parser.add_argument_group("spectral onset detection arguments")
         if onset_method is not None:
-            g.add_argument('--odf', dest='onset_method',
-                           default=onset_method, choices=cls.METHODS,
-                           help='use this onset detection function '
-                                '[default=%(default)s]')
+            g.add_argument(
+                "--odf",
+                dest="onset_method",
+                default=onset_method,
+                choices=cls.METHODS,
+                help="use this onset detection function " "[default=%(default)s]",
+            )
         # return the argument group so it can be modified if needed
         return g
 
@@ -760,13 +784,15 @@ class RNNOnsetProcessor(SequentialProcessor):
         from ..audio.signal import SignalProcessor, FramedSignalProcessor
         from ..audio.stft import ShortTimeFourierTransformProcessor
         from ..audio.spectrogram import (
-            FilteredSpectrogramProcessor, LogarithmicSpectrogramProcessor,
-            SpectrogramDifferenceProcessor)
+            FilteredSpectrogramProcessor,
+            LogarithmicSpectrogramProcessor,
+            SpectrogramDifferenceProcessor,
+        )
         from ..models import ONSETS_RNN, ONSETS_BRNN
         from ..ml.nn import NeuralNetworkEnsemble
 
         # choose the appropriate models and set frame sizes accordingly
-        if kwargs.get('online'):
+        if kwargs.get("online"):
             nn_files = ONSETS_RNN
             frame_sizes = [512, 1024, 2048]
         else:
@@ -782,10 +808,12 @@ class RNNOnsetProcessor(SequentialProcessor):
             frames = FramedSignalProcessor(frame_size=frame_size, **kwargs)
             stft = ShortTimeFourierTransformProcessor()  # caching FFT window
             filt = FilteredSpectrogramProcessor(
-                num_bands=6, fmin=30, fmax=17000, norm_filters=True)
+                num_bands=6, fmin=30, fmax=17000, norm_filters=True
+            )
             spec = LogarithmicSpectrogramProcessor(mul=5, add=1)
             diff = SpectrogramDifferenceProcessor(
-                diff_ratio=0.25, positive_diffs=True, stack_diffs=np.hstack)
+                diff_ratio=0.25, positive_diffs=True, stack_diffs=np.hstack
+            )
             # process each frame size with spec and diff sequentially
             multi.append(SequentialProcessor((frames, stft, filt, spec, diff)))
         # stack the features and processes everything sequentially
@@ -841,8 +869,10 @@ class CNNOnsetProcessor(SequentialProcessor):
         from ..audio.signal import SignalProcessor, FramedSignalProcessor
         from ..audio.stft import ShortTimeFourierTransformProcessor
         from ..audio.filters import MelFilterbank
-        from ..audio.spectrogram import (FilteredSpectrogramProcessor,
-                                         LogarithmicSpectrogramProcessor)
+        from ..audio.spectrogram import (
+            FilteredSpectrogramProcessor,
+            LogarithmicSpectrogramProcessor,
+        )
         from ..models import ONSETS_CNN
         from ..ml.nn import NeuralNetwork
 
@@ -854,8 +884,13 @@ class CNNOnsetProcessor(SequentialProcessor):
             frames = FramedSignalProcessor(frame_size=frame_size, fps=100)
             stft = ShortTimeFourierTransformProcessor()  # caching FFT window
             filt = FilteredSpectrogramProcessor(
-                filterbank=MelFilterbank, num_bands=80, fmin=27.5, fmax=16000,
-                norm_filters=True, unique_filters=False)
+                filterbank=MelFilterbank,
+                num_bands=80,
+                fmin=27.5,
+                fmax=16000,
+                norm_filters=True,
+                unique_filters=False,
+            )
             spec = LogarithmicSpectrogramProcessor(log=np.log, add=EPSILON)
             # process each frame size with spec and diff sequentially
             multi.append(SequentialProcessor((frames, stft, filt, spec)))
@@ -873,8 +908,9 @@ class CNNOnsetProcessor(SequentialProcessor):
 
 
 # universal peak-picking method
-def peak_picking(activations, threshold, smooth=None, pre_avg=0, post_avg=0,
-                 pre_max=1, post_max=1):
+def peak_picking(
+    activations, threshold, smooth=None, pre_avg=0, post_avg=0, pre_max=1, post_max=1
+):
     """
     Perform thresholding and peak-picking on the given activation function.
 
@@ -932,9 +968,10 @@ def peak_picking(activations, threshold, smooth=None, pre_avg=0, post_avg=0,
         elif activations.ndim == 2:
             filter_size = [avg_length, 1]
         else:
-            raise ValueError('`activations` must be either 1D or 2D')
-        mov_avg = uniform_filter(activations, filter_size, mode='constant',
-                                 origin=avg_origin)
+            raise ValueError("`activations` must be either 1D or 2D")
+        mov_avg = uniform_filter(
+            activations, filter_size, mode="constant", origin=avg_origin
+        )
     else:
         # do not use a moving average
         mov_avg = 0
@@ -950,18 +987,19 @@ def peak_picking(activations, threshold, smooth=None, pre_avg=0, post_avg=0,
         elif activations.ndim == 2:
             filter_size = [max_length, 1]
         else:
-            raise ValueError('`activations` must be either 1D or 2D')
-        mov_max = maximum_filter(detections, filter_size, mode='constant',
-                                 origin=max_origin)
+            raise ValueError("`activations` must be either 1D or 2D")
+        mov_max = maximum_filter(
+            detections, filter_size, mode="constant", origin=max_origin
+        )
         # detections are peak positions
-        detections *= (detections == mov_max)
+        detections *= detections == mov_max
     # return indices
     if activations.ndim == 1:
         return np.nonzero(detections)[0]
     elif activations.ndim == 2:
         return np.nonzero(detections)
     else:
-        raise ValueError('`activations` must be either 1D or 2D')
+        raise ValueError("`activations` must be either 1D or 2D")
 
 
 class OnsetPeakPickingProcessor(OnlineProcessor):
@@ -1030,21 +1068,32 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
     array([0.09, 0.29, 0.45, ..., 2.34, 2.49, 2.67])
 
     """
+
     FPS = 100
     THRESHOLD = 0.5  # binary threshold
-    SMOOTH = 0.
-    PRE_AVG = 0.
-    POST_AVG = 0.
-    PRE_MAX = 0.
-    POST_MAX = 0.
+    SMOOTH = 0.0
+    PRE_AVG = 0.0
+    POST_AVG = 0.0
+    PRE_MAX = 0.0
+    POST_MAX = 0.0
     COMBINE = 0.03
-    DELAY = 0.
+    DELAY = 0.0
     ONLINE = False
 
-    def __init__(self, threshold=THRESHOLD, smooth=SMOOTH, pre_avg=PRE_AVG,
-                 post_avg=POST_AVG, pre_max=PRE_MAX, post_max=POST_MAX,
-                 combine=COMBINE, delay=DELAY, online=ONLINE, fps=FPS,
-                 **kwargs):
+    def __init__(
+        self,
+        threshold=THRESHOLD,
+        smooth=SMOOTH,
+        pre_avg=PRE_AVG,
+        post_avg=POST_AVG,
+        pre_max=PRE_MAX,
+        post_max=POST_MAX,
+        combine=COMBINE,
+        delay=DELAY,
+        online=ONLINE,
+        fps=FPS,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         # instantiate OnlineProcessor
         super(OnsetPeakPickingProcessor, self).__init__(online=online)
@@ -1091,8 +1140,12 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
         """
         # convert timing information to frames and set default values
         # TODO: use at least 1 frame if any of these values are > 0?
-        timings = np.array([self.smooth, self.pre_avg, self.post_avg,
-                            self.pre_max, self.post_max]) * self.fps
+        timings = (
+            np.array(
+                [self.smooth, self.pre_avg, self.post_avg, self.pre_max, self.post_max]
+            )
+            * self.fps
+        )
         timings = np.round(timings).astype(int)
         # detect the peaks (function returns int indices)
         onsets = peak_picking(activations, self.threshold, *timings)
@@ -1103,7 +1156,7 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
             onsets += self.delay
         # combine onsets
         if self.combine:
-            onsets = combine_events(onsets, self.combine, 'left')
+            onsets = combine_events(onsets, self.combine, "left")
         # return the onsets
         return np.asarray(onsets)
 
@@ -1139,8 +1192,12 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
             buffer = self.buffer(activations)
         # convert timing information to frames and set default values
         # TODO: use at least 1 frame if any of these values are > 0?
-        timings = np.array([self.smooth, self.pre_avg, self.post_avg,
-                            self.pre_max, self.post_max]) * self.fps
+        timings = (
+            np.array(
+                [self.smooth, self.pre_avg, self.post_avg, self.pre_max, self.post_max]
+            )
+            * self.fps
+        )
         timings = np.round(timings).astype(int)
         # detect the peaks (function returns int indices)
         peaks = peak_picking(buffer, self.threshold, *timings)
@@ -1150,7 +1207,7 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
         self.counter += len(activations)
         # shift if necessary
         if self.delay:
-            raise ValueError('delay not supported yet in online mode')
+            raise ValueError("delay not supported yet in online mode")
         # report only if there was no onset within the last combine seconds
         if self.combine and onsets.any():
             # prepend the last onset to be able to combine them correctly
@@ -1159,7 +1216,7 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
                 onsets = np.append(self.last_onset, onsets)
                 start = 1
             # combine the onsets
-            onsets = combine_events(onsets, self.combine, 'left')
+            onsets = combine_events(onsets, self.combine, "left")
             # use only if the last onsets differ
             if onsets[-1] != self.last_onset:
                 self.last_onset = onsets[-1]
@@ -1174,9 +1231,17 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
     process_sequence = process_offline
 
     @staticmethod
-    def add_arguments(parser, threshold=THRESHOLD, smooth=None, pre_avg=None,
-                      post_avg=None, pre_max=None, post_max=None,
-                      combine=COMBINE, delay=DELAY):
+    def add_arguments(
+        parser,
+        threshold=THRESHOLD,
+        smooth=None,
+        pre_avg=None,
+        post_avg=None,
+        pre_max=None,
+        post_max=None,
+        combine=COMBINE,
+        delay=DELAY,
+    ):
         """
         Add onset peak-picking related arguments to an existing parser.
 
@@ -1212,44 +1277,74 @@ class OnsetPeakPickingProcessor(OnlineProcessor):
 
         """
         # add onset peak-picking related options to the existing parser
-        g = parser.add_argument_group('peak-picking arguments')
-        g.add_argument('-t', dest='threshold', action='store', type=float,
-                       default=threshold,
-                       help='detection threshold [default=%(default).2f]')
+        g = parser.add_argument_group("peak-picking arguments")
+        g.add_argument(
+            "-t",
+            dest="threshold",
+            action="store",
+            type=float,
+            default=threshold,
+            help="detection threshold [default=%(default).2f]",
+        )
         if smooth is not None:
-            g.add_argument('--smooth', action='store', type=float,
-                           default=smooth,
-                           help='smooth the activation function over N '
-                                'seconds [default=%(default).2f]')
+            g.add_argument(
+                "--smooth",
+                action="store",
+                type=float,
+                default=smooth,
+                help="smooth the activation function over N "
+                "seconds [default=%(default).2f]",
+            )
         if pre_avg is not None:
-            g.add_argument('--pre_avg', action='store', type=float,
-                           default=pre_avg,
-                           help='build average over N previous seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--pre_avg",
+                action="store",
+                type=float,
+                default=pre_avg,
+                help="build average over N previous seconds " "[default=%(default).2f]",
+            )
         if post_avg is not None:
-            g.add_argument('--post_avg', action='store', type=float,
-                           default=post_avg,
-                           help='build average over N following seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--post_avg",
+                action="store",
+                type=float,
+                default=post_avg,
+                help="build average over N following seconds "
+                "[default=%(default).2f]",
+            )
         if pre_max is not None:
-            g.add_argument('--pre_max', action='store', type=float,
-                           default=pre_max,
-                           help='search maximum over N previous seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--pre_max",
+                action="store",
+                type=float,
+                default=pre_max,
+                help="search maximum over N previous seconds "
+                "[default=%(default).2f]",
+            )
         if post_max is not None:
-            g.add_argument('--post_max', action='store', type=float,
-                           default=post_max,
-                           help='search maximum over N following seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--post_max",
+                action="store",
+                type=float,
+                default=post_max,
+                help="search maximum over N following seconds "
+                "[default=%(default).2f]",
+            )
         if combine is not None:
-            g.add_argument('--combine', action='store', type=float,
-                           default=combine,
-                           help='combine events within N seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--combine",
+                action="store",
+                type=float,
+                default=combine,
+                help="combine events within N seconds " "[default=%(default).2f]",
+            )
         if delay is not None:
-            g.add_argument('--delay', action='store', type=float,
-                           default=delay,
-                           help='report the events N seconds delayed '
-                                '[default=%(default)i]')
+            g.add_argument(
+                "--delay",
+                action="store",
+                type=float,
+                default=delay,
+                help="report the events N seconds delayed " "[default=%(default)i]",
+            )
         # return the argument group so it can be modified if needed
         return g

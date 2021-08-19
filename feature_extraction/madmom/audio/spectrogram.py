@@ -13,8 +13,16 @@ import inspect
 import numpy as np
 
 from ..processors import Processor, SequentialProcessor, BufferProcessor
-from .filters import (Filterbank, LogarithmicFilterbank, NUM_BANDS, FMIN, FMAX,
-                      A4, NORM_FILTERS, UNIQUE_FILTERS)
+from .filters import (
+    Filterbank,
+    LogarithmicFilterbank,
+    NUM_BANDS,
+    FMIN,
+    FMAX,
+    A4,
+    NORM_FILTERS,
+    UNIQUE_FILTERS,
+)
 
 
 def spec(stft):
@@ -62,6 +70,7 @@ def tuning_frequency(spectrogram, bin_frequencies, num_hist_bins=15, fref=A4):
 
     """
     from .filters import hz2midi
+
     # interval of spectral bins from the reference frequency in semitones
     semitone_int = hz2midi(bin_frequencies, fref=fref)
     # deviation from the next semitone
@@ -70,14 +79,15 @@ def tuning_frequency(spectrogram, bin_frequencies, num_hist_bins=15, fref=A4):
     # more bin than given to build a histogram
     offset = 0.5 / num_hist_bins
     hist_bins = np.linspace(-0.5 - offset, 0.5 + offset, num_hist_bins + 1)
-    histogram = np.histogram(semitone_dev, weights=np.sum(spectrogram, axis=0),
-                             bins=hist_bins)
+    histogram = np.histogram(
+        semitone_dev, weights=np.sum(spectrogram, axis=0), bins=hist_bins
+    )
     # deviation of the bins (centre of the bins)
-    dev_bins = (histogram[1][:-1] + histogram[1][1:]) / 2.
+    dev_bins = (histogram[1][:-1] + histogram[1][1:]) / 2.0
     # dominant deviation
     dev = dev_bins[np.argmax(histogram[0])]
     # calculate the tuning frequency
-    return fref * 2. ** (dev / 12.)
+    return fref * 2.0 ** (dev / 12.0)
 
 
 # magnitude spectrogram of STFT
@@ -109,6 +119,7 @@ class Spectrogram(np.ndarray):
                  [ 9.22709,  9.6387 , ...,  0.00981,  0.00984]], dtype=float32)
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
@@ -119,6 +130,7 @@ class Spectrogram(np.ndarray):
 
     def __new__(cls, stft, **kwargs):
         from .stft import ShortTimeFourierTransform
+
         # check stft type
         if isinstance(stft, Spectrogram):
             # already a Spectrogram
@@ -142,7 +154,7 @@ class Spectrogram(np.ndarray):
         if obj is None:
             return
         # set default values here, also needed for views
-        self.stft = getattr(obj, 'stft', None)
+        self.stft = getattr(obj, "stft", None)
 
     @property
     def num_frames(self):
@@ -227,6 +239,7 @@ class Spectrogram(np.ndarray):
 
         """
         from scipy.ndimage.filters import maximum_filter
+
         # widen the spectrogram in frequency dimension
         max_spec = maximum_filter(self, size=[1, 3])
         # get the peaks of the spectrogram
@@ -240,6 +253,7 @@ class SpectrogramProcessor(Processor):
     SpectrogramProcessor class.
 
     """
+
     def __init__(self, **kwargs):
         pass
 
@@ -349,19 +363,38 @@ class FilteredSpectrogram(Spectrogram):
     (281, 40)
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
 
-    def __init__(self, spectrogram, filterbank=FILTERBANK, num_bands=NUM_BANDS,
-                 fmin=FMIN, fmax=FMAX, fref=A4, norm_filters=NORM_FILTERS,
-                 unique_filters=UNIQUE_FILTERS, **kwargs):
+    def __init__(
+        self,
+        spectrogram,
+        filterbank=FILTERBANK,
+        num_bands=NUM_BANDS,
+        fmin=FMIN,
+        fmax=FMAX,
+        fref=A4,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        **kwargs
+    ):
         # this method is for documentation purposes only
         pass
 
-    def __new__(cls, spectrogram, filterbank=FILTERBANK, num_bands=NUM_BANDS,
-                fmin=FMIN, fmax=FMAX, fref=A4, norm_filters=NORM_FILTERS,
-                unique_filters=UNIQUE_FILTERS, **kwargs):
+    def __new__(
+        cls,
+        spectrogram,
+        filterbank=FILTERBANK,
+        num_bands=NUM_BANDS,
+        fmin=FMIN,
+        fmax=FMAX,
+        fref=A4,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         # instantiate a Spectrogram if needed
         if not isinstance(spectrogram, Spectrogram):
@@ -370,13 +403,17 @@ class FilteredSpectrogram(Spectrogram):
         # instantiate a Filterbank if needed
         if inspect.isclass(filterbank) and issubclass(filterbank, Filterbank):
             # a Filterbank class is given, create a filterbank of this type
-            filterbank = filterbank(spectrogram.bin_frequencies,
-                                    num_bands=num_bands, fmin=fmin, fmax=fmax,
-                                    fref=fref, norm_filters=norm_filters,
-                                    unique_filters=unique_filters)
+            filterbank = filterbank(
+                spectrogram.bin_frequencies,
+                num_bands=num_bands,
+                fmin=fmin,
+                fmax=fmax,
+                fref=fref,
+                norm_filters=norm_filters,
+                unique_filters=unique_filters,
+            )
         if not isinstance(filterbank, Filterbank):
-            raise TypeError('not a Filterbank type or instance: %s' %
-                            filterbank)
+            raise TypeError("not a Filterbank type or instance: %s" % filterbank)
         # filter the spectrogram
         data = np.dot(spectrogram, filterbank)
         # cast as FilteredSpectrogram
@@ -392,8 +429,8 @@ class FilteredSpectrogram(Spectrogram):
         if obj is None:
             return
         # set default values here, also needed for views
-        self.stft = getattr(obj, 'stft', None)
-        self.filterbank = getattr(obj, 'filterbank', None)
+        self.stft = getattr(obj, "stft", None)
+        self.filterbank = getattr(obj, "filterbank", None)
 
     @property
     def bin_frequencies(self):
@@ -427,9 +464,17 @@ class FilteredSpectrogramProcessor(Processor):
 
     """
 
-    def __init__(self, filterbank=FILTERBANK, num_bands=NUM_BANDS, fmin=FMIN,
-                 fmax=FMAX, fref=A4, norm_filters=NORM_FILTERS,
-                 unique_filters=UNIQUE_FILTERS, **kwargs):
+    def __init__(
+        self,
+        filterbank=FILTERBANK,
+        num_bands=NUM_BANDS,
+        fmin=FMIN,
+        fmax=FMAX,
+        fref=A4,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         self.filterbank = filterbank
         self.num_bands = num_bands
@@ -457,10 +502,15 @@ class FilteredSpectrogramProcessor(Processor):
 
         """
         # update arguments passed to FilteredSpectrogram
-        args = dict(filterbank=self.filterbank, num_bands=self.num_bands,
-                    fmin=self.fmin, fmax=self.fmax, fref=self.fref,
-                    norm_filters=self.norm_filters,
-                    unique_filters=self.unique_filters)
+        args = dict(
+            filterbank=self.filterbank,
+            num_bands=self.num_bands,
+            fmin=self.fmin,
+            fmax=self.fmax,
+            fref=self.fref,
+            norm_filters=self.norm_filters,
+            unique_filters=self.unique_filters,
+        )
         args.update(kwargs)
         # instantiate a FilteredSpectrogram and return it
         data = FilteredSpectrogram(data, **args)
@@ -471,8 +521,8 @@ class FilteredSpectrogramProcessor(Processor):
 
 # logarithmic spectrogram stuff
 LOG = np.log10
-MUL = 1.
-ADD = 1.
+MUL = 1.0
+ADD = 1.0
 
 
 class LogarithmicSpectrogram(Spectrogram):
@@ -507,6 +557,7 @@ class LogarithmicSpectrogram(Spectrogram):
     LogarithmicSpectrogram(0., dtype=float32)
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
@@ -546,10 +597,10 @@ class LogarithmicSpectrogram(Spectrogram):
         if obj is None:
             return
         # set default values here, also needed for views
-        self.stft = getattr(obj, 'stft', None)
-        self.spectrogram = getattr(obj, 'spectrogram', None)
-        self.mul = getattr(obj, 'mul', MUL)
-        self.add = getattr(obj, 'add', ADD)
+        self.stft = getattr(obj, "stft", None)
+        self.spectrogram = getattr(obj, "spectrogram", None)
+        self.mul = getattr(obj, "mul", MUL)
+        self.add = getattr(obj, "add", ADD)
 
     @property
     def filterbank(self):
@@ -635,33 +686,49 @@ class LogarithmicSpectrogramProcessor(Processor):
 
         """
         # add log related options to the existing parser
-        g = parser.add_argument_group('magnitude scaling arguments')
+        g = parser.add_argument_group("magnitude scaling arguments")
         # log
         if log is True:
-            g.add_argument('--linear', dest='log', action='store_const',
-                           const=None, default=LOG,
-                           help='linear magnitudes [default=logarithmic]')
+            g.add_argument(
+                "--linear",
+                dest="log",
+                action="store_const",
+                const=None,
+                default=LOG,
+                help="linear magnitudes [default=logarithmic]",
+            )
         elif log is False:
-            g.add_argument('--log', action='store_const',
-                           const=LOG, default=None,
-                           help='logarithmic magnitudes [default=linear]')
+            g.add_argument(
+                "--log",
+                action="store_const",
+                const=LOG,
+                default=None,
+                help="logarithmic magnitudes [default=linear]",
+            )
         # mul
         if mul is not None:
-            g.add_argument('--mul', action='store', type=float,
-                           default=mul, help='multiplier (before taking '
-                           'the log) [default=%(default).1f]')
+            g.add_argument(
+                "--mul",
+                action="store",
+                type=float,
+                default=mul,
+                help="multiplier (before taking " "the log) [default=%(default).1f]",
+            )
         # add
         if add is not None:
-            g.add_argument('--add', action='store', type=float,
-                           default=add, help='value added (before taking '
-                           'the log) [default=%(default).1f]')
+            g.add_argument(
+                "--add",
+                action="store",
+                type=float,
+                default=add,
+                help="value added (before taking " "the log) [default=%(default).1f]",
+            )
         # return the group
         return g
 
 
 # logarithmic filtered spectrogram class
-class LogarithmicFilteredSpectrogram(LogarithmicSpectrogram,
-                                     FilteredSpectrogram):
+class LogarithmicFilteredSpectrogram(LogarithmicSpectrogram, FilteredSpectrogram):
     """
     LogarithmicFilteredSpectrogram class.
 
@@ -708,6 +775,7 @@ class LogarithmicFilteredSpectrogram(LogarithmicSpectrogram,
     LogarithmicFilteredSpectrogram(0.00831, dtype=float32)
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
@@ -718,8 +786,8 @@ class LogarithmicFilteredSpectrogram(LogarithmicSpectrogram,
 
     def __new__(cls, spectrogram, **kwargs):
         # get the log args
-        mul = kwargs.pop('mul', MUL)
-        add = kwargs.pop('add', ADD)
+        mul = kwargs.pop("mul", MUL)
+        add = kwargs.pop("add", ADD)
         # instantiate a FilteredSpectrogram if needed
         if not isinstance(spectrogram, FilteredSpectrogram):
             spectrogram = FilteredSpectrogram(spectrogram, **kwargs)
@@ -777,9 +845,19 @@ class LogarithmicFilteredSpectrogramProcessor(Processor):
 
     """
 
-    def __init__(self, filterbank=FILTERBANK, num_bands=NUM_BANDS, fmin=FMIN,
-                 fmax=FMAX, fref=A4, norm_filters=NORM_FILTERS,
-                 unique_filters=UNIQUE_FILTERS, mul=MUL, add=ADD, **kwargs):
+    def __init__(
+        self,
+        filterbank=FILTERBANK,
+        num_bands=NUM_BANDS,
+        fmin=FMIN,
+        fmax=FMAX,
+        fref=A4,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        mul=MUL,
+        add=ADD,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         self.filterbank = filterbank
         self.num_bands = num_bands
@@ -810,11 +888,17 @@ class LogarithmicFilteredSpectrogramProcessor(Processor):
 
         """
         # update arguments passed to LogarithmicFilteredSpectrogram
-        args = dict(filterbank=self.filterbank, num_bands=self.num_bands,
-                    fmin=self.fmin, fmax=self.fmax, fref=self.fref,
-                    norm_filters=self.norm_filters,
-                    unique_filters=self.unique_filters, mul=self.mul,
-                    add=self.add)
+        args = dict(
+            filterbank=self.filterbank,
+            num_bands=self.num_bands,
+            fmin=self.fmin,
+            fmax=self.fmax,
+            fref=self.fref,
+            norm_filters=self.norm_filters,
+            unique_filters=self.unique_filters,
+            mul=self.mul,
+            add=self.add,
+        )
         args.update(kwargs)
         # instantiate a LogarithmicFilteredSpectrogram
         data = LogarithmicFilteredSpectrogram(data, **args)
@@ -853,7 +937,7 @@ def _diff_frames(diff_ratio, hop_size, frame_size, window=np.hanning):
     """
     # calculate the number of diff frames on basis of the diff_ratio
     # first sample of the window with a higher magnitude than given ratio
-    if hasattr(window, '__call__'):
+    if hasattr(window, "__call__"):
         # Note: if only a window function is given (default in audio.stft),
         #       generate a window of size `frame_size` with the given shape
         window = window(frame_size)
@@ -946,19 +1030,34 @@ class SpectrogramDifference(Spectrogram):
                            [0.     , 0. , ...,  0. ,  0. ]], dtype=float32)
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
 
-    def __init__(self, spectrogram, diff_ratio=DIFF_RATIO,
-                 diff_frames=DIFF_FRAMES, diff_max_bins=DIFF_MAX_BINS,
-                 positive_diffs=POSITIVE_DIFFS, keep_dims=True, **kwargs):
+    def __init__(
+        self,
+        spectrogram,
+        diff_ratio=DIFF_RATIO,
+        diff_frames=DIFF_FRAMES,
+        diff_max_bins=DIFF_MAX_BINS,
+        positive_diffs=POSITIVE_DIFFS,
+        keep_dims=True,
+        **kwargs
+    ):
         # this method is for documentation purposes only
         pass
 
-    def __new__(cls, spectrogram, diff_ratio=DIFF_RATIO,
-                diff_frames=DIFF_FRAMES, diff_max_bins=DIFF_MAX_BINS,
-                positive_diffs=POSITIVE_DIFFS, keep_dims=True, **kwargs):
+    def __new__(
+        cls,
+        spectrogram,
+        diff_ratio=DIFF_RATIO,
+        diff_frames=DIFF_FRAMES,
+        diff_max_bins=DIFF_MAX_BINS,
+        positive_diffs=POSITIVE_DIFFS,
+        keep_dims=True,
+        **kwargs
+    ):
         # instantiate a Spectrogram if needed
         if not isinstance(spectrogram, Spectrogram):
             # try to instantiate a Spectrogram object
@@ -967,13 +1066,16 @@ class SpectrogramDifference(Spectrogram):
         # calculate the number of diff frames to use
         if diff_frames is None:
             diff_frames = _diff_frames(
-                diff_ratio, hop_size=spectrogram.stft.frames.hop_size,
+                diff_ratio,
+                hop_size=spectrogram.stft.frames.hop_size,
                 frame_size=spectrogram.stft.frames.frame_size,
-                window=spectrogram.stft.window)
+                window=spectrogram.stft.window,
+            )
 
         # apply a maximum filter to diff_spec if needed
         if diff_max_bins is not None and diff_max_bins > 1:
             from scipy.ndimage.filters import maximum_filter
+
             # widen the spectrogram in frequency dimension
             size = (1, int(diff_max_bins))
             diff_spec = maximum_filter(spectrogram, size=size)
@@ -983,8 +1085,7 @@ class SpectrogramDifference(Spectrogram):
         # calculate the diff
         if keep_dims:
             diff = np.zeros_like(spectrogram)
-            diff[diff_frames:] = (spectrogram[diff_frames:] -
-                                  diff_spec[:-diff_frames])
+            diff[diff_frames:] = spectrogram[diff_frames:] - diff_spec[:-diff_frames]
         else:
             diff = spectrogram[diff_frames:] - diff_spec[:-diff_frames]
 
@@ -1007,10 +1108,10 @@ class SpectrogramDifference(Spectrogram):
         if obj is None:
             return
         # set default values here, also needed for views
-        self.diff_ratio = getattr(obj, 'diff_ratio', 0.5)
-        self.diff_frames = getattr(obj, 'diff_frames', None)
-        self.diff_max_bins = getattr(obj, 'diff_max_bins', None)
-        self.positive_diffs = getattr(obj, 'positive_diffs', False)
+        self.diff_ratio = getattr(obj, "diff_ratio", 0.5)
+        self.diff_frames = getattr(obj, "diff_frames", None)
+        self.diff_max_bins = getattr(obj, "diff_max_bins", None)
+        self.positive_diffs = getattr(obj, "positive_diffs", False)
 
     @property
     def bin_frequencies(self):
@@ -1056,9 +1157,15 @@ class SpectrogramDifferenceProcessor(Processor):
 
     """
 
-    def __init__(self, diff_ratio=DIFF_RATIO, diff_frames=DIFF_FRAMES,
-                 diff_max_bins=DIFF_MAX_BINS, positive_diffs=POSITIVE_DIFFS,
-                 stack_diffs=None, **kwargs):
+    def __init__(
+        self,
+        diff_ratio=DIFF_RATIO,
+        diff_frames=DIFF_FRAMES,
+        diff_max_bins=DIFF_MAX_BINS,
+        positive_diffs=POSITIVE_DIFFS,
+        stack_diffs=None,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         self.diff_ratio = diff_ratio
         self.diff_frames = diff_frames
@@ -1073,7 +1180,7 @@ class SpectrogramDifferenceProcessor(Processor):
         # copy everything to a picklable object
         state = self.__dict__.copy()
         # do not pickle attributes needed for stateful processing
-        state.pop('_buffer', None)
+        state.pop("_buffer", None)
         return state
 
     def __setstate__(self, state):
@@ -1106,16 +1213,22 @@ class SpectrogramDifferenceProcessor(Processor):
 
         """
         # update arguments passed to SpectrogramDifference
-        args = dict(diff_ratio=self.diff_ratio, diff_frames=self.diff_frames,
-                    diff_max_bins=self.diff_max_bins,
-                    positive_diffs=self.positive_diffs)
+        args = dict(
+            diff_ratio=self.diff_ratio,
+            diff_frames=self.diff_frames,
+            diff_max_bins=self.diff_max_bins,
+            positive_diffs=self.positive_diffs,
+        )
         args.update(kwargs)
         # calculate the number of diff frames
         if self.diff_frames is None:
             # Note: use diff_ration from args, not self.diff_ratio
             self.diff_frames = _diff_frames(
-                args['diff_ratio'], frame_size=data.stft.frames.frame_size,
-                hop_size=data.stft.frames.hop_size, window=data.stft.window)
+                args["diff_ratio"],
+                frame_size=data.stft.frames.frame_size,
+                hop_size=data.stft.frames.hop_size,
+                window=data.stft.window,
+            )
         # init buffer or shift it
         if self._buffer is None or reset:
             # put diff_frames infs before the data (will be replaced by 0s)
@@ -1136,7 +1249,7 @@ class SpectrogramDifferenceProcessor(Processor):
             return diff
         # Note: don't use `data` directly, because it could be a str
         #       we ave to access diff.spectrogram (i.e. converted data)
-        return self.stack_diffs((diff.spectrogram[self.diff_frames:], diff))
+        return self.stack_diffs((diff.spectrogram[self.diff_frames :], diff))
 
     def reset(self):
         """Reset the SpectrogramDifferenceProcessor."""
@@ -1144,8 +1257,14 @@ class SpectrogramDifferenceProcessor(Processor):
         self._buffer = None
 
     @staticmethod
-    def add_arguments(parser, diff=None, diff_ratio=None, diff_frames=None,
-                      diff_max_bins=None, positive_diffs=None):
+    def add_arguments(
+        parser,
+        diff=None,
+        diff_ratio=None,
+        diff_frames=None,
+        diff_max_bins=None,
+        positive_diffs=None,
+    ):
         """
         Add spectrogram difference related arguments to an existing parser.
 
@@ -1182,47 +1301,71 @@ class SpectrogramDifferenceProcessor(Processor):
 
         """
         # add diff related options to the existing parser
-        g = parser.add_argument_group('spectrogram difference arguments')
+        g = parser.add_argument_group("spectrogram difference arguments")
         # diff
         if diff is True:
-            g.add_argument('--no_diff', dest='diff', action='store_false',
-                           help='use the spectrogram [default=differences '
-                                'of the spectrogram]')
+            g.add_argument(
+                "--no_diff",
+                dest="diff",
+                action="store_false",
+                help="use the spectrogram [default=differences " "of the spectrogram]",
+            )
         elif diff is False:
-            g.add_argument('--diff', action='store_true',
-                           help='use the differences of the spectrogram '
-                                '[default=spectrogram]')
+            g.add_argument(
+                "--diff",
+                action="store_true",
+                help="use the differences of the spectrogram " "[default=spectrogram]",
+            )
         # diff ratio
         if diff_ratio is not None:
-            g.add_argument('--diff_ratio', action='store', type=float,
-                           default=diff_ratio,
-                           help='calculate the difference to the frame at '
-                                'which the window of the STFT have this ratio '
-                                'of the maximum height '
-                                '[default=%(default).1f]')
+            g.add_argument(
+                "--diff_ratio",
+                action="store",
+                type=float,
+                default=diff_ratio,
+                help="calculate the difference to the frame at "
+                "which the window of the STFT have this ratio "
+                "of the maximum height "
+                "[default=%(default).1f]",
+            )
         # diff frames
         if diff_ratio is not None or diff_frames:
-            g.add_argument('--diff_frames', action='store', type=int,
-                           default=diff_frames,
-                           help='calculate the difference to the N-th previous'
-                                ' frame (this overrides the value calculated '
-                                'with `diff_ratio`) [default=%(default)s]')
+            g.add_argument(
+                "--diff_frames",
+                action="store",
+                type=int,
+                default=diff_frames,
+                help="calculate the difference to the N-th previous"
+                " frame (this overrides the value calculated "
+                "with `diff_ratio`) [default=%(default)s]",
+            )
         # positive diffs
         if positive_diffs is True:
-            g.add_argument('--all_diffs', dest='positive_diffs',
-                           action='store_false',
-                           help='keep both positive and negative diffs '
-                                '[default=only the positive diffs]')
+            g.add_argument(
+                "--all_diffs",
+                dest="positive_diffs",
+                action="store_false",
+                help="keep both positive and negative diffs "
+                "[default=only the positive diffs]",
+            )
         elif positive_diffs is False:
-            g.add_argument('--positive_diffs', action='store_true',
-                           help='keep only positive diffs '
-                                '[default=positive and negative diffs]')
+            g.add_argument(
+                "--positive_diffs",
+                action="store_true",
+                help="keep only positive diffs "
+                "[default=positive and negative diffs]",
+            )
         # add maximum filter related options to the existing parser
         if diff_max_bins is not None:
-            g.add_argument('--max_bins', action='store', type=int,
-                           dest='diff_max_bins', default=diff_max_bins,
-                           help='apply a maximum filter with this width (in '
-                                'frequency bins) [default=%(default)d]')
+            g.add_argument(
+                "--max_bins",
+                action="store",
+                type=int,
+                dest="diff_max_bins",
+                default=diff_max_bins,
+                help="apply a maximum filter with this width (in "
+                "frequency bins) [default=%(default)d]",
+            )
         # return the group
         return g
 
@@ -1233,31 +1376,37 @@ class SuperFluxProcessor(SequentialProcessor):
     SuperFlux algorithm.
 
     """
+
     # pylint: disable=too-many-ancestors
 
     def __init__(self, **kwargs):
         from .stft import ShortTimeFourierTransformProcessor
+
         # set the default values (can be overwritten if set)
         # we need an un-normalized LogarithmicFilterbank with 24 bands
-        filterbank = kwargs.pop('filterbank', FILTERBANK)
-        num_bands = kwargs.pop('num_bands', 24)
-        norm_filters = kwargs.pop('norm_filters', False)
+        filterbank = kwargs.pop("filterbank", FILTERBANK)
+        num_bands = kwargs.pop("num_bands", 24)
+        norm_filters = kwargs.pop("norm_filters", False)
         # we want max filtered diffs
-        diff_ratio = kwargs.pop('diff_ratio', 0.5)
-        diff_max_bins = kwargs.pop('diff_max_bins', 3)
-        positive_diffs = kwargs.pop('positive_diffs', True)
+        diff_ratio = kwargs.pop("diff_ratio", 0.5)
+        diff_max_bins = kwargs.pop("diff_max_bins", 3)
+        positive_diffs = kwargs.pop("positive_diffs", True)
         # processing chain
         stft = ShortTimeFourierTransformProcessor(**kwargs)
         spec = SpectrogramProcessor(**kwargs)
-        filt = FilteredSpectrogramProcessor(filterbank=filterbank,
-                                            num_bands=num_bands,
-                                            norm_filters=norm_filters,
-                                            **kwargs)
+        filt = FilteredSpectrogramProcessor(
+            filterbank=filterbank,
+            num_bands=num_bands,
+            norm_filters=norm_filters,
+            **kwargs
+        )
         log = LogarithmicSpectrogramProcessor(**kwargs)
-        diff = SpectrogramDifferenceProcessor(diff_ratio=diff_ratio,
-                                              diff_max_bins=diff_max_bins,
-                                              positive_diffs=positive_diffs,
-                                              **kwargs)
+        diff = SpectrogramDifferenceProcessor(
+            diff_ratio=diff_ratio,
+            diff_max_bins=diff_max_bins,
+            positive_diffs=positive_diffs,
+            **kwargs
+        )
         # sequentially process everything
         super(SuperFluxProcessor, self).__init__([stft, spec, filt, log, diff])
 
@@ -1294,29 +1443,48 @@ class MultiBandSpectrogram(FilteredSpectrogram):
     frequency bins.
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
 
-    def __init__(self, spectrogram, crossover_frequencies, fmin=FMIN,
-                 fmax=FMAX, norm_filters=NORM_FILTERS,
-                 unique_filters=UNIQUE_FILTERS, **kwargs):
+    def __init__(
+        self,
+        spectrogram,
+        crossover_frequencies,
+        fmin=FMIN,
+        fmax=FMAX,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        **kwargs
+    ):
         # this method is for documentation purposes only
         pass
 
-    def __new__(cls, spectrogram, crossover_frequencies, fmin=FMIN, fmax=FMAX,
-                norm_filters=NORM_FILTERS, unique_filters=UNIQUE_FILTERS,
-                **kwargs):
+    def __new__(
+        cls,
+        spectrogram,
+        crossover_frequencies,
+        fmin=FMIN,
+        fmax=FMAX,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        **kwargs
+    ):
         from .filters import RectangularFilterbank
+
         # instantiate a Spectrogram if needed
         if not isinstance(spectrogram, Spectrogram):
             spectrogram = Spectrogram(spectrogram, **kwargs)
         # create a rectangular filterbank
-        filterbank = RectangularFilterbank(spectrogram.bin_frequencies,
-                                           crossover_frequencies,
-                                           fmin=fmin, fmax=fmax,
-                                           norm_filters=norm_filters,
-                                           unique_filters=unique_filters)
+        filterbank = RectangularFilterbank(
+            spectrogram.bin_frequencies,
+            crossover_frequencies,
+            fmin=fmin,
+            fmax=fmax,
+            norm_filters=norm_filters,
+            unique_filters=unique_filters,
+        )
         # filter the spectrogram
         data = np.dot(spectrogram, filterbank)
         # cast as FilteredSpectrogram
@@ -1332,10 +1500,9 @@ class MultiBandSpectrogram(FilteredSpectrogram):
         if obj is None:
             return
         # set default values here, also needed for views
-        self.spectrogram = getattr(obj, 'spectrogram', None)
-        self.filterbank = getattr(obj, 'filterbank', None)
-        self.crossover_frequencies = getattr(obj, 'crossover_frequencies',
-                                             None)
+        self.spectrogram = getattr(obj, "spectrogram", None)
+        self.filterbank = getattr(obj, "filterbank", None)
+        self.crossover_frequencies = getattr(obj, "crossover_frequencies", None)
 
 
 class MultiBandSpectrogramProcessor(Processor):
@@ -1361,9 +1528,15 @@ class MultiBandSpectrogramProcessor(Processor):
 
     """
 
-    def __init__(self, crossover_frequencies, fmin=FMIN, fmax=FMAX,
-                 norm_filters=NORM_FILTERS, unique_filters=UNIQUE_FILTERS,
-                 **kwargs):
+    def __init__(
+        self,
+        crossover_frequencies,
+        fmin=FMIN,
+        fmax=FMAX,
+        norm_filters=NORM_FILTERS,
+        unique_filters=UNIQUE_FILTERS,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         self.crossover_frequencies = np.array(crossover_frequencies)
         self.fmin = fmin
@@ -1389,10 +1562,13 @@ class MultiBandSpectrogramProcessor(Processor):
 
         """
         # update arguments passed to MultiBandSpectrogram
-        args = dict(crossover_frequencies=self.crossover_frequencies,
-                    fmin=self.fmin, fmax=self.fmax,
-                    norm_filters=self.norm_filters,
-                    unique_filters=self.unique_filters)
+        args = dict(
+            crossover_frequencies=self.crossover_frequencies,
+            fmin=self.fmin,
+            fmax=self.fmax,
+            norm_filters=self.norm_filters,
+            unique_filters=self.unique_filters,
+        )
         args.update(kwargs)
         # instantiate a MultiBandSpectrogram
         return MultiBandSpectrogram(data, **args)
@@ -1420,18 +1596,20 @@ class SemitoneBandpassSpectrogram(FilteredSpectrogram):
            "Information retrieval for music and motion", Springer, 2007.
 
     """
+
     # pylint: disable=super-on-old-class
     # pylint: disable=super-init-not-called
     # pylint: disable=attribute-defined-outside-init
 
-    def __init__(self, signal, fps=50., fmin=27.5, fmax=4200.):
+    def __init__(self, signal, fps=50.0, fmin=27.5, fmax=4200.0):
         # this method is for documentation purposes only
         pass
 
-    def __new__(cls, signal, fps=50., fmin=27.5, fmax=4200.):
+    def __new__(cls, signal, fps=50.0, fmin=27.5, fmax=4200.0):
         from scipy.signal import filtfilt
         from .filters import SemitoneBandpassFilterbank
         from .signal import FramedSignal, Signal, resample
+
         # check if we got a mono Signal
         if not isinstance(signal, Signal) or signal.num_channels != 1:
             signal = Signal(signal, num_channels=1)
@@ -1443,8 +1621,9 @@ class SemitoneBandpassSpectrogram(FilteredSpectrogram):
         # compute the energy of the frames of the bandpass filtered signal
         filterbank = SemitoneBandpassFilterbank(fmin=fmin, fmax=fmax)
         bands = []
-        for filt, band_sample_rate in zip(filterbank.filters,
-                                          filterbank.band_sample_rates):
+        for filt, band_sample_rate in zip(
+            filterbank.filters, filterbank.band_sample_rates
+        ):
             # frames should overlap 50%
             frame_size = np.round(2 * band_sample_rate / float(fps))
             # down-sample audio if needed
@@ -1464,11 +1643,15 @@ class SemitoneBandpassSpectrogram(FilteredSpectrogram):
             #       2) we do not sum here, but rather after splitting the
             #          signal into overlapping frames to avoid doubled
             #          computation due to the overlapping frames
-            filtered_signal = filtered_signal ** 2 / band_sample_rate * 22050.
+            filtered_signal = filtered_signal ** 2 / band_sample_rate * 22050.0
             # split into overlapping frames
-            frames = FramedSignal(filtered_signal, frame_size=frame_size,
-                                  fps=fps, sample_rate=band_sample_rate,
-                                  num_frames=num_frames)
+            frames = FramedSignal(
+                filtered_signal,
+                frame_size=frame_size,
+                fps=fps,
+                sample_rate=band_sample_rate,
+                num_frames=num_frames,
+            )
             # finally sum the energy of all frames
             bands.append(np.sum(frames, axis=1))
         # cast as SemitoneBandpassSpectrogram
@@ -1482,5 +1665,5 @@ class SemitoneBandpassSpectrogram(FilteredSpectrogram):
         if obj is None:
             return
         # set default values here
-        self.filterbank = getattr(obj, 'filterbank', None)
-        self.fps = getattr(obj, 'fps', None)
+        self.filterbank = getattr(obj, "filterbank", None)
+        self.fps = getattr(obj, "fps", None)

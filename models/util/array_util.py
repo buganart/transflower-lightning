@@ -30,7 +30,7 @@ def mean_dim(tensor, dim=None, keepdims=False):
             tensor = tensor.mean(dim=d, keepdim=True)
         if not keepdims:
             for i, d in enumerate(dim):
-                tensor.squeeze_(d-i)
+                tensor.squeeze_(d - i)
         return tensor
 
 
@@ -67,7 +67,7 @@ def checkerboard(x, reverse=False):
         return x
     else:
         if h % 2 != 0:
-            raise RuntimeError('Checkerboard got odd height input: {}'.format(h))
+            raise RuntimeError("Checkerboard got odd height input: {}".format(h))
 
         x = x.view(b, c, h * w)
         y = x[:, :, y_idx].view(b, c, h // 2, w)

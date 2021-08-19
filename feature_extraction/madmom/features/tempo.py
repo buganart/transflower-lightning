@@ -16,13 +16,13 @@ import numpy as np
 from ..audio.signal import smooth as smooth_signal
 from ..processors import BufferProcessor, OnlineProcessor
 
-METHOD = 'comb'
+METHOD = "comb"
 ALPHA = 0.79
-MIN_BPM = 40.
-MAX_BPM = 250.
+MIN_BPM = 40.0
+MAX_BPM = 250.0
 ACT_SMOOTH = 0.14
 HIST_SMOOTH = 9
-HIST_BUFFER = 10.
+HIST_BUFFER = 10.0
 NO_TEMPO = np.nan
 
 
@@ -87,8 +87,9 @@ def interval_histogram_acf(activations, min_tau=1, max_tau=None):
 
     """
     if activations.ndim != 1:
-        raise NotImplementedError('too many dimensions for autocorrelation '
-                                  'interval histogram calculation.')
+        raise NotImplementedError(
+            "too many dimensions for autocorrelation " "interval histogram calculation."
+        )
     # set the maximum delay
     if max_tau is None:
         max_tau = len(activations) - min_tau
@@ -139,13 +140,14 @@ def interval_histogram_comb(activations, alpha, min_tau=1, max_tau=None):
     """
     # import comb filter
     from madmom.audio.comb_filters import CombFilterbankProcessor
+
     # set the maximum delay
     if max_tau is None:
         max_tau = len(activations) - min_tau
     # get the range of taus
     taus = np.arange(min_tau, max_tau + 1)
     # create a comb filter bank instance
-    cfb = CombFilterbankProcessor('backward', taus, alpha)
+    cfb = CombFilterbankProcessor("backward", taus, alpha)
     if activations.ndim in (1, 2):
         # apply a bank of comb filters
         act = cfb.process(activations)
@@ -155,8 +157,9 @@ def interval_histogram_comb(activations, alpha, min_tau=1, max_tau=None):
         # histogram bin values
         histogram_bins = np.sum(act * act_max, axis=0)
     else:
-        raise NotImplementedError('too many dimensions for comb filter '
-                                  'interval histogram calculation.')
+        raise NotImplementedError(
+            "too many dimensions for comb filter " "interval histogram calculation."
+        )
     # return the histogram
     return histogram_bins, taus
 
@@ -213,24 +216,25 @@ def detect_tempo(histogram, fps):
 
     """
     from scipy.signal import argrelmax
+
     # histogram of IBIs
     bins = histogram[0]
     # convert the histogram bin delays to tempi in beats per minute
     tempi = 60.0 * fps / histogram[1]
     # to get the two dominant tempi, just keep the peaks
     # use 'wrap' mode to also get peaks at the borders
-    peaks = argrelmax(bins, mode='wrap')[0]
+    peaks = argrelmax(bins, mode="wrap")[0]
     # we need more than 1 peak to report multiple tempi
     if len(peaks) == 0:
         # a flat histogram has no peaks, use the center bin
         if len(bins):
-            ret = np.asarray([tempi[len(bins) // 2], 1.])
+            ret = np.asarray([tempi[len(bins) // 2], 1.0])
         else:
             # otherwise: no peaks, no tempo
-            ret = np.asarray([NO_TEMPO, 0.])
+            ret = np.asarray([NO_TEMPO, 0.0])
     elif len(peaks) == 1:
         # report only the strongest tempo
-        ret = np.asarray([tempi[peaks[0]], 1.])
+        ret = np.asarray([tempi[peaks[0]], 1.0])
     else:
         # sort the peaks in descending order of bin heights
         sorted_peaks = peaks[np.argsort(bins[peaks])[::-1]]
@@ -270,8 +274,15 @@ class TempoHistogramProcessor(OnlineProcessor):
 
     """
 
-    def __init__(self, min_bpm, max_bpm, hist_buffer=HIST_BUFFER, fps=None,
-                 online=False, **kwargs):
+    def __init__(
+        self,
+        min_bpm,
+        max_bpm,
+        hist_buffer=HIST_BUFFER,
+        fps=None,
+        online=False,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         super(TempoHistogramProcessor, self).__init__(online=online)
         self.min_bpm = min_bpm
@@ -279,18 +290,19 @@ class TempoHistogramProcessor(OnlineProcessor):
         self.hist_buffer = hist_buffer
         self.fps = fps
         if self.online:
-            self._hist_buffer = BufferProcessor((int(hist_buffer * self.fps),
-                                                 len(self.intervals)))
+            self._hist_buffer = BufferProcessor(
+                (int(hist_buffer * self.fps), len(self.intervals))
+            )
 
     @property
     def min_interval(self):
         """Minimum beat interval [frames]."""
-        return int(np.floor(60. * self.fps / self.max_bpm))
+        return int(np.floor(60.0 * self.fps / self.max_bpm))
 
     @property
     def max_interval(self):
         """Maximum beat interval [frames]."""
-        return int(np.ceil(60. * self.fps / self.min_bpm))
+        return int(np.ceil(60.0 * self.fps / self.min_bpm))
 
     @property
     def intervals(self):
@@ -323,16 +335,30 @@ class CombFilterTempoHistogramProcessor(TempoHistogramProcessor):
 
     """
 
-    def __init__(self, min_bpm=MIN_BPM, max_bpm=MAX_BPM, alpha=ALPHA,
-                 hist_buffer=HIST_BUFFER, fps=None, online=False, **kwargs):
+    def __init__(
+        self,
+        min_bpm=MIN_BPM,
+        max_bpm=MAX_BPM,
+        alpha=ALPHA,
+        hist_buffer=HIST_BUFFER,
+        fps=None,
+        online=False,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         super(CombFilterTempoHistogramProcessor, self).__init__(
-            min_bpm=min_bpm, max_bpm=max_bpm, hist_buffer=hist_buffer, fps=fps,
-            online=online, **kwargs)
+            min_bpm=min_bpm,
+            max_bpm=max_bpm,
+            hist_buffer=hist_buffer,
+            fps=fps,
+            online=online,
+            **kwargs
+        )
         self.alpha = alpha
         if self.online:
-            self._comb_buffer = BufferProcessor((self.max_interval + 1,
-                                                 len(self.intervals)))
+            self._comb_buffer = BufferProcessor(
+                (self.max_interval + 1, len(self.intervals))
+            )
 
     def reset(self):
         """Reset to initial state."""
@@ -357,8 +383,9 @@ class CombFilterTempoHistogramProcessor(TempoHistogramProcessor):
             Corresponding delays [frames].
 
         """
-        return interval_histogram_comb(activations, self.alpha,
-                                       self.min_interval, self.max_interval)
+        return interval_histogram_comb(
+            activations, self.alpha, self.min_interval, self.max_interval
+        )
 
     def process_online(self, activations, reset=True, **kwargs):
         """
@@ -421,12 +448,24 @@ class ACFTempoHistogramProcessor(TempoHistogramProcessor):
 
     """
 
-    def __init__(self, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
-                 hist_buffer=HIST_BUFFER, fps=None, online=False, **kwargs):
+    def __init__(
+        self,
+        min_bpm=MIN_BPM,
+        max_bpm=MAX_BPM,
+        hist_buffer=HIST_BUFFER,
+        fps=None,
+        online=False,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         super(ACFTempoHistogramProcessor, self).__init__(
-            min_bpm=min_bpm, max_bpm=max_bpm, hist_buffer=hist_buffer, fps=fps,
-            online=online, **kwargs)
+            min_bpm=min_bpm,
+            max_bpm=max_bpm,
+            hist_buffer=hist_buffer,
+            fps=fps,
+            online=online,
+            **kwargs
+        )
         if self.online:
             self._act_buffer = BufferProcessor((self.max_interval + 1, 1))
 
@@ -454,8 +493,7 @@ class ACFTempoHistogramProcessor(TempoHistogramProcessor):
 
         """
         # build the tempo (i.e. inter beat interval) histogram and return it
-        return interval_histogram_acf(activations, self.min_interval,
-                                      self.max_interval)
+        return interval_histogram_acf(activations, self.min_interval, self.max_interval)
 
     def process_online(self, activations, reset=True, **kwargs):
         """
@@ -513,16 +551,33 @@ class DBNTempoHistogramProcessor(TempoHistogramProcessor):
 
     """
 
-    def __init__(self, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
-                 hist_buffer=HIST_BUFFER, fps=None, online=False, **kwargs):
+    def __init__(
+        self,
+        min_bpm=MIN_BPM,
+        max_bpm=MAX_BPM,
+        hist_buffer=HIST_BUFFER,
+        fps=None,
+        online=False,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         super(DBNTempoHistogramProcessor, self).__init__(
-            min_bpm=min_bpm, max_bpm=max_bpm, hist_buffer=hist_buffer, fps=fps,
-            online=online, **kwargs)
+            min_bpm=min_bpm,
+            max_bpm=max_bpm,
+            hist_buffer=hist_buffer,
+            fps=fps,
+            online=online,
+            **kwargs
+        )
         from .beats import DBNBeatTrackingProcessor
+
         self.dbn = DBNBeatTrackingProcessor(
-            min_bpm=self.min_bpm, max_bpm=self.max_bpm, fps=self.fps,
-            online=online, **kwargs)
+            min_bpm=self.min_bpm,
+            max_bpm=self.max_bpm,
+            fps=self.fps,
+            online=online,
+            **kwargs
+        )
 
     def reset(self):
         """Reset DBN to initial state."""
@@ -550,10 +605,9 @@ class DBNTempoHistogramProcessor(TempoHistogramProcessor):
         path, _ = self.dbn.hmm.viterbi(activations.astype(np.float32))
         intervals = self.dbn.st.state_intervals[path]
         # get the counts of the bins
-        bins = np.bincount(intervals,
-                           minlength=self.dbn.st.intervals.max() + 1)
+        bins = np.bincount(intervals, minlength=self.dbn.st.intervals.max() + 1)
         # truncate everything below the minimum interval of the state space
-        bins = bins[self.dbn.st.intervals.min():]
+        bins = bins[self.dbn.st.intervals.min() :]
         # build a histogram together with the intervals and return it
         return bins, self.dbn.st.intervals
 
@@ -644,9 +698,18 @@ class TempoEstimationProcessor(OnlineProcessor):
 
     """
 
-    def __init__(self, method=METHOD, min_bpm=MIN_BPM, max_bpm=MAX_BPM,
-                 act_smooth=ACT_SMOOTH, hist_smooth=HIST_SMOOTH, fps=None,
-                 online=False, histogram_processor=None, **kwargs):
+    def __init__(
+        self,
+        method=METHOD,
+        min_bpm=MIN_BPM,
+        max_bpm=MAX_BPM,
+        act_smooth=ACT_SMOOTH,
+        hist_smooth=HIST_SMOOTH,
+        fps=None,
+        online=False,
+        histogram_processor=None,
+        **kwargs
+    ):
         # pylint: disable=unused-argument
         super(TempoEstimationProcessor, self).__init__(online=online)
         self.method = method
@@ -654,22 +717,22 @@ class TempoEstimationProcessor(OnlineProcessor):
         self.hist_smooth = hist_smooth
         self.fps = fps
         if self.online:
-            self.visualize = kwargs.get('verbose', False)
+            self.visualize = kwargs.get("verbose", False)
         if histogram_processor is None:
-            if method == 'acf':
+            if method == "acf":
                 histogram_processor = ACFTempoHistogramProcessor
-            elif method == 'comb':
+            elif method == "comb":
                 histogram_processor = CombFilterTempoHistogramProcessor
-            elif method == 'dbn':
+            elif method == "dbn":
                 histogram_processor = DBNTempoHistogramProcessor
                 # do not smooth the activations for the DBN
                 self.act_smooth = None
             else:
-                raise ValueError('tempo histogram method unknown.')
+                raise ValueError("tempo histogram method unknown.")
             # instantiate histogram processor
             histogram_processor = histogram_processor(
-                min_bpm=min_bpm, max_bpm=max_bpm, fps=fps, online=online,
-                **kwargs)
+                min_bpm=min_bpm, max_bpm=max_bpm, fps=fps, online=online, **kwargs
+            )
         self.histogram_processor = histogram_processor
 
     @property
@@ -755,17 +818,17 @@ class TempoEstimationProcessor(OnlineProcessor):
         tempo = detect_tempo(histogram, self.fps)
         # visualize tempo
         if self.visualize:
-            display = ''
+            display = ""
             # display the 3 most likely tempi and their strengths
             for i, display_tempo in enumerate(tempo[:3], start=1):
                 # display tempo
-                display += '| ' + str(round(display_tempo[0], 1)) + ' '
+                display += "| " + str(round(display_tempo[0], 1)) + " "
                 # display strength
-                display += min(int(display_tempo[1] * 50), 18) * '*'
+                display += min(int(display_tempo[1] * 50), 18) * "*"
                 # fill up the rest with spaces
                 display = display.ljust(i * 26)
             # print the tempi
-            sys.stderr.write('\r%s' % ''.join(display) + '|')
+            sys.stderr.write("\r%s" % "".join(display) + "|")
             sys.stderr.flush()
         # return tempo
         return tempo
@@ -809,9 +872,16 @@ class TempoEstimationProcessor(OnlineProcessor):
         return dominant_interval(histogram, self.hist_smooth)
 
     @staticmethod
-    def add_arguments(parser, method=None, min_bpm=None, max_bpm=None,
-                      act_smooth=None, hist_smooth=None, hist_buffer=None,
-                      alpha=None):
+    def add_arguments(
+        parser,
+        method=None,
+        min_bpm=None,
+        max_bpm=None,
+        act_smooth=None,
+        hist_smooth=None,
+        hist_buffer=None,
+        alpha=None,
+    ):
         """
         Add tempo estimation related arguments to an existing parser.
 
@@ -845,38 +915,65 @@ class TempoEstimationProcessor(OnlineProcessor):
 
         """
         # add tempo estimation related options to the existing parser
-        g = parser.add_argument_group('tempo estimation arguments')
+        g = parser.add_argument_group("tempo estimation arguments")
         if method is not None:
-            g.add_argument('--method', action='store', type=str,
-                           default=method, choices=['acf', 'comb', 'dbn'],
-                           help="which method to use [default=%(default)s]")
+            g.add_argument(
+                "--method",
+                action="store",
+                type=str,
+                default=method,
+                choices=["acf", "comb", "dbn"],
+                help="which method to use [default=%(default)s]",
+            )
         if min_bpm is not None:
-            g.add_argument('--min_bpm', action='store', type=float,
-                           default=min_bpm,
-                           help='minimum tempo [bpm, default=%(default).2f]')
+            g.add_argument(
+                "--min_bpm",
+                action="store",
+                type=float,
+                default=min_bpm,
+                help="minimum tempo [bpm, default=%(default).2f]",
+            )
         if max_bpm is not None:
-            g.add_argument('--max_bpm', action='store', type=float,
-                           default=max_bpm,
-                           help='maximum tempo [bpm, default=%(default).2f]')
+            g.add_argument(
+                "--max_bpm",
+                action="store",
+                type=float,
+                default=max_bpm,
+                help="maximum tempo [bpm, default=%(default).2f]",
+            )
         if act_smooth is not None:
-            g.add_argument('--act_smooth', action='store', type=float,
-                           default=act_smooth,
-                           help='smooth the activations over N seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--act_smooth",
+                action="store",
+                type=float,
+                default=act_smooth,
+                help="smooth the activations over N seconds " "[default=%(default).2f]",
+            )
         if hist_smooth is not None:
-            g.add_argument('--hist_smooth', action='store', type=int,
-                           default=hist_smooth,
-                           help='smooth the tempo histogram over N bins '
-                                '[default=%(default)d]')
+            g.add_argument(
+                "--hist_smooth",
+                action="store",
+                type=int,
+                default=hist_smooth,
+                help="smooth the tempo histogram over N bins " "[default=%(default)d]",
+            )
         if hist_buffer is not None:
-            g.add_argument('--hist_buffer', action='store', type=float,
-                           default=hist_buffer,
-                           help='aggregate the tempo histogram over N seconds '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--hist_buffer",
+                action="store",
+                type=float,
+                default=hist_buffer,
+                help="aggregate the tempo histogram over N seconds "
+                "[default=%(default).2f]",
+            )
         if alpha is not None:
-            g.add_argument('--alpha', action='store', type=float,
-                           default=alpha,
-                           help='alpha for comb filter tempo estimation '
-                                '[default=%(default).2f]')
+            g.add_argument(
+                "--alpha",
+                action="store",
+                type=float,
+                default=alpha,
+                help="alpha for comb filter tempo estimation "
+                "[default=%(default).2f]",
+            )
         # return the argument group so it can be modified if needed
         return g

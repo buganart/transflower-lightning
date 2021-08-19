@@ -19,5 +19,5 @@ data.values = data.values.iloc[cut_frames1:-cut_frames2]
 
 writer = BVHWriter()
 
-with open(filename,'w') as f:
+with open(filename, "w") as f:
     writer.write(data, f)

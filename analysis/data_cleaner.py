@@ -12,23 +12,28 @@ import csv
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+
 # %matplotlib
 
 
 def mp4_for_bvh_file(filename, output_dir):
 
     if len(joint_names) > 0:
-        data_pipe = Pipeline([
-            ('dwnsampl', DownSampler(tgt_fps=args.fps, keep_all=False)),
-            ('root', RootTransformer('pos_rot_deltas')),
-            ("pos", MocapParameterizer("position")),
-        ])
+        data_pipe = Pipeline(
+            [
+                ("dwnsampl", DownSampler(tgt_fps=args.fps, keep_all=False)),
+                ("root", RootTransformer("pos_rot_deltas")),
+                ("pos", MocapParameterizer("position")),
+            ]
+        )
     else:
-        data_pipe = Pipeline([
-            ('dwnsampl', DownSampler(tgt_fps=args.fps, keep_all=False)),
-            ('root', RootTransformer('pos_rot_deltas')),
-            ("pos", MocapParameterizer("position")),
-        ])
+        data_pipe = Pipeline(
+            [
+                ("dwnsampl", DownSampler(tgt_fps=args.fps, keep_all=False)),
+                ("root", RootTransformer("pos_rot_deltas")),
+                ("pos", MocapParameterizer("position")),
+            ]
+        )
 
     parser = BVHParser()
     parsed_data = parser.parse(filename)
@@ -36,27 +41,37 @@ def mp4_for_bvh_file(filename, output_dir):
     piped_data = data_pipe.fit_transform([parsed_data])
     assert len(piped_data) == 1
 
-    render_mp4(piped_data[0], output_dir.__str__() + "/"+ filename.stem.__str__()+".mp4", axis_scale=3, elev=0, azim=45)
+    render_mp4(
+        piped_data[0],
+        output_dir.__str__() + "/" + filename.stem.__str__() + ".mp4",
+        axis_scale=3,
+        elev=0,
+        azim=45,
+    )
 
     return piped_data, data_pipe
 
 
 def load_bvh_file(filename, joint_names=[], param="position"):
     if len(joint_names) > 0:
-        data_pipe = Pipeline([
-            ('dwnsampl', DownSampler(tgt_fps=args.fps, keep_all=False)),
-            ('root', RootTransformer('pos_rot_deltas')),
-            (param, MocapParameterizer(param)),
-            ('jtsel', JointSelector(joint_names, include_root=False)),
-            ('np', Numpyfier())
-        ])
+        data_pipe = Pipeline(
+            [
+                ("dwnsampl", DownSampler(tgt_fps=args.fps, keep_all=False)),
+                ("root", RootTransformer("pos_rot_deltas")),
+                (param, MocapParameterizer(param)),
+                ("jtsel", JointSelector(joint_names, include_root=False)),
+                ("np", Numpyfier()),
+            ]
+        )
     else:
-        data_pipe = Pipeline([
-            ('dwnsampl', DownSampler(tgt_fps=args.fps, keep_all=False)),
-            ('root', RootTransformer('pos_rot_deltas')),
-            (param, MocapParameterizer(param)),
-            ('np', Numpyfier())
-        ])
+        data_pipe = Pipeline(
+            [
+                ("dwnsampl", DownSampler(tgt_fps=args.fps, keep_all=False)),
+                ("root", RootTransformer("pos_rot_deltas")),
+                (param, MocapParameterizer(param)),
+                ("np", Numpyfier()),
+            ]
+        )
 
     parser = BVHParser()
     parsed_data = parser.parse(filename)
@@ -68,37 +83,46 @@ def load_bvh_file(filename, joint_names=[], param="position"):
 
 
 def save_below_floor_tuples(below_floor_tuples, outfile_path):
-    with open(outfile_path, mode='w') as csv_file:
-        fieldnames = ['video_path', 'offset']
+    with open(outfile_path, mode="w") as csv_file:
+        fieldnames = ["video_path", "offset"]
         csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         csv_writer.writeheader()
 
         for (video_name, offset) in below_floor_tuples:
-            csv_writer.writerow({
-                "video_path": video_name,
-                "offset": offset,
-            })
+            csv_writer.writerow(
+                {
+                    "video_path": video_name,
+                    "offset": offset,
+                }
+            )
 
 
 def save_jump_tuples(jump_tuples, outfile_path):
-    with open(outfile_path, mode='w') as csv_file:
-        fieldnames = ['video_path', 'jump_time', 'jump_size']
+    with open(outfile_path, mode="w") as csv_file:
+        fieldnames = ["video_path", "jump_time", "jump_size"]
         csv_writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         csv_writer.writeheader()
 
         for (video_name, jump_size, jump_time) in jump_tuples:
-            csv_writer.writerow({
-                "video_path": video_name,
-                "jump_time": jump_time,
-                "jump_size": jump_size
-            })
+            csv_writer.writerow(
+                {
+                    "video_path": video_name,
+                    "jump_time": jump_time,
+                    "jump_size": jump_size,
+                }
+            )
 
-            secs = jump_time/args.fps
+            secs = jump_time / args.fps
             print(
                 "\n\nmax jump video: {}\nmax jump time: {}\n max jump: {}".format(
                     video_name, datetime.timedelta(seconds=secs), jump_size
-                ))
-            print('vlc command:\nvlc "{}" --start-time {}'.format(str(video_name).replace(".bvh", ""), secs-5))
+                )
+            )
+            print(
+                'vlc command:\nvlc "{}" --start-time {}'.format(
+                    str(video_name).replace(".bvh", ""), secs - 5
+                )
+            )
 
 
 def calculate_jumps(traj):
@@ -107,9 +131,11 @@ def calculate_jumps(traj):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dir', type=str, help='path to the bhv files dir')
+    parser.add_argument("--dir", type=str, help="path to the bhv files dir")
     parser.add_argument("--fps", type=int, default=60)
-    parser.add_argument("--top-k", type=int, default=10, help="save top k biggest jumps")
+    parser.add_argument(
+        "--top-k", type=int, default=10, help="save top k biggest jumps"
+    )
     parser.add_argument("--param", type=str, default="position")
     parser.add_argument("--detect-below-floor", action="store_true")
     parser.add_argument("--floor-z", type=float, default=-0.08727)
@@ -121,10 +147,14 @@ if __name__ == "__main__":
 
     if args.detect_below_floor:
         if args.param != "position":
-            raise ValueError("param must be position for below floor and is {}.".format(args.param))
+            raise ValueError(
+                "param must be position for below floor and is {}.".format(args.param)
+            )
 
     output_dir = Path(args.output_dir)
-    jumps_output_file = (output_dir / "jumps_fps_{}_param_{}".format(args.fps, args.param)).with_suffix(".csv")
+    jumps_output_file = (
+        output_dir / "jumps_fps_{}_param_{}".format(args.fps, args.param)
+    ).with_suffix(".csv")
     below_floor_output_file = (output_dir / "below_floor").with_suffix(".csv")
 
     # which joint to load
@@ -145,8 +175,9 @@ if __name__ == "__main__":
     for i, filename in enumerate(filenames):
         print("[{}/{}]".format(i, len(filenames)))
 
-
-        piped_data, data_pipe = load_bvh_file(filename, joint_names=joint_names, param=args.param)
+        piped_data, data_pipe = load_bvh_file(
+            filename, joint_names=joint_names, param=args.param
+        )
 
         if piped_data.size == 0:
             raise ValueError("No joints found. {} ".format(joint_names))
@@ -160,7 +191,7 @@ if __name__ == "__main__":
         max_per_step = traj_jumps.max(axis=-1)
         for pos, st in enumerate(max_per_step):
             # ignore jumps at the beginning
-            if pos/args.fps > args.ignore_first_secs:
+            if pos / args.fps > args.ignore_first_secs:
                 jump_tuples_per_step.append((filename, st, pos))
 
         # below the floor
@@ -177,7 +208,9 @@ if __name__ == "__main__":
             mp4_for_bvh_file(filename=filename, output_dir=output_dir)
 
     # k biggest jumps
-    top_k_jumps = sorted(jump_tuples_per_step, key=lambda s: s[1], reverse=True)[:args.top_k]
+    top_k_jumps = sorted(jump_tuples_per_step, key=lambda s: s[1], reverse=True)[
+        : args.top_k
+    ]
     save_jump_tuples(top_k_jumps, jumps_output_file)
 
     save_below_floor_tuples(below_floor_tuples, below_floor_output_file)
@@ -187,10 +220,7 @@ if __name__ == "__main__":
         # plot
         for j in range(all_jumps.shape[-1]):
             joint_jumps = all_jumps[:, j]
-            plt.scatter(j*np.ones_like(joint_jumps), joint_jumps, s=1)
+            plt.scatter(j * np.ones_like(joint_jumps), joint_jumps, s=1)
 
         plt.savefig(output_dir / "joint_distances.png")
         plt.savefig(output_dir / "joint_distances.svg")
-
-
-

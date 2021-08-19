@@ -64,6 +64,7 @@ try:
     # try to use a faster sigmoid function
     from distutils.version import LooseVersion
     from scipy.version import version as scipy_version
+
     # we need a recent version of scipy, older have a bug in expit
     # https://github.com/scipy/scipy/issues/3385
     if LooseVersion(scipy_version) < LooseVersion("0.14"):
@@ -94,14 +95,14 @@ except AttributeError:
         """
         # sigmoid = 0.5 * (1. + np.tanh(0.5 * x))
         if out is None:
-            out = np.asarray(.5 * x)
+            out = np.asarray(0.5 * x)
         else:
             if out is not x:
                 out[:] = x
-            out *= .5
+            out *= 0.5
         np.tanh(out, out=out)
         out += 1
-        out *= .5
+        out *= 0.5
         return out
 
 

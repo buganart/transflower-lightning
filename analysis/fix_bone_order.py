@@ -1,4 +1,5 @@
-import os,sys
+import os, sys
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(THIS_DIR, os.pardir))
 sys.path.append(ROOT_DIR)
@@ -16,9 +17,9 @@ import matplotlib.pyplot as plt
 p = BVHParser()
 # f1="data/dance_full/shadermotion_justdance/bvh/justdance_0.bvh"
 # f2="data/dance_full/kth_streetdance_data/bvh/Streetdance_001.bvh"
-f1=sys.argv[1] #target file
+f1 = sys.argv[1]  # target file
 # f2=sys.argv[2] #file from which to source the offsets of the skeleton (bone names and hierarchy should be the same)
-f2="/home/guillefix/code/mt-lightning/data/dance_full/kth_streetdance_data/bvh/Streetdance_001.bvh"
+f2 = "/home/guillefix/code/mt-lightning/data/dance_full/kth_streetdance_data/bvh/Streetdance_001.bvh"
 
 data1 = p.parse(f1)
 data2 = p.parse(f2)
@@ -35,7 +36,7 @@ data2 = p.parse(f2)
 data1.skeleton = data2.skeleton
 
 writer = BVHWriter()
-with open(f1,'w') as f:
+with open(f1, "w") as f:
     writer.write(data1, f)
 
 # data1.skeleton

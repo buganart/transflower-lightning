@@ -12,11 +12,32 @@ import numpy as np
 from ..processors import SequentialProcessor
 
 
-KEY_LABELS = ['A major', 'Bb major', 'B major', 'C major', 'Db major',
-              'D major', 'Eb major', 'E major', 'F major', 'F# major',
-              'G major', 'Ab major', 'A minor', 'Bb minor', 'B minor',
-              'C minor', 'C# minor', 'D minor', 'D# minor', 'E minor',
-              'F minor', 'F# minor', 'G minor', 'G# minor']
+KEY_LABELS = [
+    "A major",
+    "Bb major",
+    "B major",
+    "C major",
+    "Db major",
+    "D major",
+    "Eb major",
+    "E major",
+    "F major",
+    "F# major",
+    "G major",
+    "Ab major",
+    "A minor",
+    "Bb minor",
+    "B minor",
+    "C minor",
+    "C# minor",
+    "D minor",
+    "D# minor",
+    "E minor",
+    "F minor",
+    "F# minor",
+    "G minor",
+    "G# minor",
+]
 
 
 def key_prediction_to_label(prediction):
@@ -96,6 +117,6 @@ class CNNKeyRecognitionProcessor(SequentialProcessor):
         nn = NeuralNetworkEnsemble.load(nn_files)
 
         # create processing pipeline
-        super(CNNKeyRecognitionProcessor, self).__init__([
-            sig, frames, stft, spec, nn, add_axis, softmax
-        ])
+        super(CNNKeyRecognitionProcessor, self).__init__(
+            [sig, frames, stft, spec, nn, add_axis, softmax]
+        )

@@ -18,5 +18,5 @@ data.values["Hips_Yposition"] += shift_amount
 
 writer = BVHWriter()
 
-with open(filename,'w') as f:
+with open(filename, "w") as f:
     writer.write(data, f)

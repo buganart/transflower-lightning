@@ -71,6 +71,7 @@ def suppress_warnings(function):
 
         """
         import warnings
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return function(*args, **kwargs)
@@ -97,6 +98,7 @@ def filter_files(files, suffix):
 
     """
     import fnmatch
+
     # make sure files is a list
     if not isinstance(files, list):
         files = [files]
@@ -135,6 +137,7 @@ def search_path(path, recursion_depth=0):
     """
     # adapted from http://stackoverflow.com/a/234329
     import os
+
     # remove the rightmost path separator (needed for recursion depth count)
     path = path.rstrip(os.path.sep)
     # we can only handle directories
@@ -179,6 +182,7 @@ def search_files(files, suffix=None, recursion_depth=0):
 
     """
     import os
+
     file_list = []
     # determine the files
     if isinstance(files, list):
@@ -220,12 +224,13 @@ def strip_suffix(filename, suffix=None):
 
     """
     if suffix is not None and filename.endswith(suffix):
-        return filename[:-len(suffix)]
+        return filename[: -len(suffix)]
     return filename
 
 
-def match_file(filename, match_list, suffix=None, match_suffix=None,
-               match_exactly=True):
+def match_file(
+    filename, match_list, suffix=None, match_suffix=None, match_exactly=True
+):
     """
     Match a filename or string against a list of other filenames or strings.
 
@@ -266,14 +271,15 @@ def match_file(filename, match_list, suffix=None, match_suffix=None,
         pattern = "*%s" % basename
     for match in fnmatch.filter(match_list, pattern):
         # base names must match exactly if indicated
-        if (not match_exactly) or (basename == os.path.basename(
-                strip_suffix(match, match_suffix))):
+        if (not match_exactly) or (
+            basename == os.path.basename(strip_suffix(match, match_suffix))
+        ):
             matches.append(match)
     # return the matches
     return matches
 
 
-def combine_events(events, delta, combine='mean'):
+def combine_events(events, delta, combine="mean"):
     """
     Combine all events within a certain range.
 
@@ -305,7 +311,7 @@ def combine_events(events, delta, combine='mean'):
     events = np.array(events, dtype=np.float)
     # can handle only 1D events
     if events.ndim > 1:
-        raise ValueError('only 1-dimensional events supported.')
+        raise ValueError("only 1-dimensional events supported.")
     # set start position
     idx = 0
     # get first event
@@ -314,21 +320,22 @@ def combine_events(events, delta, combine='mean'):
     for right in events[1:]:
         if right - left <= delta:
             # combine the two events
-            if combine == 'mean':
+            if combine == "mean":
                 left = events[idx] = 0.5 * (right + left)
-            elif combine == 'left':
+            elif combine == "left":
                 left = events[idx] = left
-            elif combine == 'right':
+            elif combine == "right":
                 left = events[idx] = right
             else:
-                raise ValueError("don't know how to combine two events with "
-                                 "%s" % combine)
+                raise ValueError(
+                    "don't know how to combine two events with " "%s" % combine
+                )
         else:
             # move forward
             idx += 1
             left = events[idx] = right
     # return the combined events
-    return events[:idx + 1]
+    return events[: idx + 1]
 
 
 def quantize_events(events, fps, length=None, shift=None):
@@ -357,13 +364,16 @@ def quantize_events(events, fps, length=None, shift=None):
     events = np.array(events, dtype=np.float)
     # can handle only 1D events
     if events.ndim != 1:
-        raise ValueError('only 1-dimensional events supported.')
+        raise ValueError("only 1-dimensional events supported.")
     # shift all events if needed
     if shift is not None:
         import warnings
-        warnings.warn('`shift` parameter is deprecated as of version 0.16 and '
-                      'will be removed in version 0.18. Please shift the '
-                      'events manually before calling this function.')
+
+        warnings.warn(
+            "`shift` parameter is deprecated as of version 0.16 and "
+            "will be removed in version 0.18. Please shift the "
+            "events manually before calling this function."
+        )
         events += shift
     # determine the length for the quantized array
     if length is None:
@@ -372,7 +382,7 @@ def quantize_events(events, fps, length=None, shift=None):
     else:
         # else filter all events which do not fit in the array
         # since we apply rounding later, we need to subtract half a bin
-        events = events[:np.searchsorted(events, float(length - 0.5) / fps)]
+        events = events[: np.searchsorted(events, float(length - 0.5) / fps)]
     # init array
     quantized = np.zeros(length)
     # quantize
@@ -425,9 +435,9 @@ def quantize_notes(notes, fps, length=None, num_pitches=None, velocity=None):
     notes = np.array(np.array(notes).T, dtype=np.float, ndmin=2).T
     # check supported dims and shapes
     if notes.ndim != 2:
-        raise ValueError('only 2-dimensional notes supported.')
+        raise ValueError("only 2-dimensional notes supported.")
     if notes.shape[1] < 2:
-        raise ValueError('notes must have at least 2 columns.')
+        raise ValueError("notes must have at least 2 columns.")
     # split the notes into columns
     note_onsets = notes[:, 0]
     note_numbers = notes[:, 1].astype(np.int)
@@ -454,8 +464,9 @@ def quantize_notes(notes, fps, length=None, num_pitches=None, velocity=None):
     for n, note in enumerate(notes):
         # use only the notes which fit in the array and note number >= 0
         if num_pitches > note_numbers[n] >= 0:
-            quantized[note_onsets[n]:note_offsets[n], note_numbers[n]] = \
-                note_velocities[n]
+            quantized[
+                note_onsets[n] : note_offsets[n], note_numbers[n]
+            ] = note_velocities[n]
     # return quantized array
     return quantized
 
@@ -492,7 +503,7 @@ def expand_notes(notes, duration=0.6, velocity=100):
         new_columns = np.ones((rows, 2)) * velocity
         new_columns[:, 0] = duration
     else:
-        raise ValueError('unable to handle `notes` with %d columns' % columns)
+        raise ValueError("unable to handle `notes` with %d columns" % columns)
     # return the notes
     notes = np.hstack((notes, new_columns))
     return notes
@@ -513,6 +524,7 @@ class OverrideDefaultListAction(argparse.Action):
         Separator to be used if multiple values should be parsed from a list.
 
     """
+
     def __init__(self, sep=None, *args, **kwargs):
         super(OverrideDefaultListAction, self).__init__(*args, **kwargs)
         self.set_to_default = True
@@ -533,15 +545,13 @@ class OverrideDefaultListAction(argparse.Action):
         cur_values = getattr(namespace, self.dest)
         # convert to correct type and append the newly parsed values
         try:
-            cur_values.extend([self.list_type(v)
-                               for v in value.split(self.sep)])
+            cur_values.extend([self.list_type(v) for v in value.split(self.sep)])
         except ValueError as e:
             raise argparse.ArgumentError(self, str(e) + value)
 
 
 # taken from: http://www.scipy.org/Cookbook/SegmentAxis
-def segment_axis(signal, frame_size, hop_size, axis=None, end='cut',
-                 end_value=0):
+def segment_axis(signal, frame_size, hop_size, axis=None, end="cut", end_value=0):
     """
     Generate a new array that chops the given array along the given axis into
     (overlapping) frames.
@@ -599,7 +609,7 @@ def segment_axis(signal, frame_size, hop_size, axis=None, end='cut',
         signal = np.ravel(signal)  # may copy
         axis = 0
     if axis != 0:
-        raise ValueError('please check if the resulting array is correct.')
+        raise ValueError("please check if the resulting array is correct.")
 
     length = signal.shape[axis]
 
@@ -610,62 +620,71 @@ def segment_axis(signal, frame_size, hop_size, axis=None, end='cut',
 
     if length < frame_size or (length - frame_size) % hop_size:
         if length > frame_size:
-            round_up = (frame_size + (1 + (length - frame_size) // hop_size) *
-                        hop_size)
-            round_down = (frame_size + ((length - frame_size) // hop_size) *
-                          hop_size)
+            round_up = frame_size + (1 + (length - frame_size) // hop_size) * hop_size
+            round_down = frame_size + ((length - frame_size) // hop_size) * hop_size
         else:
             round_up = frame_size
             round_down = 0
         assert round_down < length < round_up
-        assert round_up == round_down + hop_size or (round_up == frame_size and
-                                                     round_down == 0)
+        assert round_up == round_down + hop_size or (
+            round_up == frame_size and round_down == 0
+        )
         signal = signal.swapaxes(-1, axis)
 
-        if end == 'cut':
+        if end == "cut":
             signal = signal[..., :round_down]
-        elif end in ['pad', 'wrap']:
+        elif end in ["pad", "wrap"]:
             # need to copy
             s = list(signal.shape)
             s[-1] = round_up
             y = np.empty(s, dtype=signal.dtype)
             y[..., :length] = signal
-            if end == 'pad':
+            if end == "pad":
                 y[..., length:] = end_value
-            elif end == 'wrap':
-                y[..., length:] = signal[..., :round_up - length]
+            elif end == "wrap":
+                y[..., length:] = signal[..., : round_up - length]
             signal = y
 
         signal = signal.swapaxes(-1, axis)
 
     length = signal.shape[axis]
     if length == 0:
-        raise ValueError("Not enough data points to segment array in 'cut' "
-                         "mode; try end='pad' or end='wrap'")
+        raise ValueError(
+            "Not enough data points to segment array in 'cut' "
+            "mode; try end='pad' or end='wrap'"
+        )
     assert length >= frame_size
     assert (length - frame_size) % hop_size == 0
     n = 1 + (length - frame_size) // hop_size
     s = signal.strides[axis]
-    new_shape = (signal.shape[:axis] + (n, frame_size) +
-                 signal.shape[axis + 1:])
-    new_strides = (signal.strides[:axis] + (hop_size * s, s) +
-                   signal.strides[axis + 1:])
+    new_shape = signal.shape[:axis] + (n, frame_size) + signal.shape[axis + 1 :]
+    new_strides = signal.strides[:axis] + (hop_size * s, s) + signal.strides[axis + 1 :]
 
     try:
-        return np.ndarray.__new__(np.ndarray, strides=new_strides,
-                                  shape=new_shape, buffer=signal,
-                                  dtype=signal.dtype)
+        return np.ndarray.__new__(
+            np.ndarray,
+            strides=new_strides,
+            shape=new_shape,
+            buffer=signal,
+            dtype=signal.dtype,
+        )
     except TypeError:
         # TODO: remove warning?
         import warnings
+
         warnings.warn("Problem with ndarray creation forces copy.")
         signal = signal.copy()
         # shape doesn't change but strides does
-        new_strides = (signal.strides[:axis] + (hop_size * s, s) +
-                       signal.strides[axis + 1:])
-        return np.ndarray.__new__(np.ndarray, strides=new_strides,
-                                  shape=new_shape, buffer=signal,
-                                  dtype=signal.dtype)
+        new_strides = (
+            signal.strides[:axis] + (hop_size * s, s) + signal.strides[axis + 1 :]
+        )
+        return np.ndarray.__new__(
+            np.ndarray,
+            strides=new_strides,
+            shape=new_shape,
+            buffer=signal,
+            dtype=signal.dtype,
+        )
 
 
 # keep namespace clean

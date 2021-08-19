@@ -2,6 +2,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+
 #%%
 #### looking at the data
 # from pymo.rotation_tools import unroll_1, unroll_2
@@ -122,35 +123,38 @@ import torch
 #
 import numpy as np
 import matplotlib.pyplot as plt
-mask = np.load("analysis/weight_mats/"+"892818c5-f166-45a0-a228-648127ed87e3.np.npy")
+
+mask = np.load("analysis/weight_mats/" + "892818c5-f166-45a0-a228-648127ed87e3.np.npy")
 mask[0][120:140]
 mask[0][:140]
 import torch
+
 # maskt = torch.from_numpy(mask)
 
 # ps = torch.nn.functional.softmax(maskt,dim=-1)
-sm = lambda x: torch.nn.functional.softmax(torch.from_numpy(x),dim=-1)
+sm = lambda x: torch.nn.functional.softmax(torch.from_numpy(x), dim=-1)
 ps[0]
 mask[1].max()
 mask[1].max()
 mask.shape
 mask[0].shape
 import scipy.linalg
+
 mask[0].shape
-scipy.linalg.norm(mask[0],axis=1)
+scipy.linalg.norm(mask[0], axis=1)
 mask[5]
 # plt.matshow(mask[0][:20])
 plt.matshow(mask[0])
 plt.matshow(sm(mask[0]))
 plt.matshow(sm(mask[0]))
-plt.matshow(sm(mask[0])[60:120,:120])
-plt.matshow(sm(mask[0])[-60:,:120])
-plt.matshow(sm(mask[9])[60:120,:120])
+plt.matshow(sm(mask[0])[60:120, :120])
+plt.matshow(sm(mask[0])[-60:, :120])
+plt.matshow(sm(mask[9])[60:120, :120])
 # plt.matshow(sum([sm(mask[i])[60:120,:120] for i in range(10)]))
-plt.matshow(sm(mask[0])[-60:,:120])
-plt.matshow(acc[:,142:142+120]**2)
-plt.matshow(sm(mask[0][:,40:50]))
-plt.matshow(sm(mask[0][:,30:80]))
+plt.matshow(sm(mask[0])[-60:, :120])
+plt.matshow(acc[:, 142 : 142 + 120] ** 2)
+plt.matshow(sm(mask[0][:, 40:50]))
+plt.matshow(sm(mask[0][:, 30:80]))
 plt.matshow(sm(mask[0][:3]))
 # plt.matshow(sm(mask[0][:20]))
 mask[9]
@@ -159,10 +163,10 @@ plt.matshow(sm(mask[2]))
 
 # mdata = np.load("data/dance_combined/aistpp_gMH_sFM_cAll_d22_mMH3_ch04.bvh_expmap_cr.npy")
 mdata = np.load("data/dance_combined/groovenet_2.bvh_expmap_cr.npy")
-acc = np.abs(np.diff(mdata[:,:-6],2,axis=0)).T
+acc = np.abs(np.diff(mdata[:, :-6], 2, axis=0)).T
 mdata.shape
 acc.shape
-plt.matshow(acc[:,:120])
+plt.matshow(acc[:, :120])
 
 plt.matshow(sm(mask[9][:120]))
 plt.matshow(sm(mask[4][120:]))
@@ -173,7 +177,7 @@ plt.matshow(sm(mask[1][150:170]))
 plt.matshow(sm(mask[5]))
 plt.matshow(mask)
 plt.matshow(mask[:500])
-plt.matshow(np.matmul(mask[:500],mask[:500].T))
+plt.matshow(np.matmul(mask[:500], mask[:500].T))
 mask
 mask.std(axis=1)
 plt.matshow(mask[9][0:1])
@@ -246,7 +250,9 @@ from sklearn.pipeline import Pipeline
 # data = np.load("/home/guillefix/code/mt-lightning/inference/generated/aistpp_residual/predicted_mods/gBR_sBM_cAll_d04_mBR2_ch01.expmap_scaled.generated.npy")
 # data = np.load("/home/guillefix/code/mt-lightning/inference/generated/aistpp_residual/predicted_mods/gPO_sBM_cAll_d10_mPO0_ch10.expmap_scaled.generated.npy")
 # data = np.load("/home/guillefix/code/mt-lightning/inference/generated/aistpp_residual/predicted_mods/gJS_sBM_cAll_d03_mJS3_ch02.expmap_scaled.generated.npy")
-data = np.load("/home/guillefix/code/mt-lightning/inference/generated/aistpp_residual/predicted_mods/gMH_sBM_cAll_d24_mMH2_ch08.expmap_scaled.generated.npy")
+data = np.load(
+    "/home/guillefix/code/mt-lightning/inference/generated/aistpp_residual/predicted_mods/gMH_sBM_cAll_d24_mMH2_ch08.expmap_scaled.generated.npy"
+)
 # data = np.load("data/scaled_features/gLO_sBM_cAll_d13_mLO3_ch06.expmap_scaled.npy")
 # data = np.load(""analysis/tmp/gWA_sFM_cAll_d26_mWA4_ch12.bvh_expmap.npz")["clips"]
 
@@ -256,11 +262,12 @@ data = np.load("/home/guillefix/code/mt-lightning/inference/generated/aistpp_res
 # data = transform.inverse_transform(data)
 
 import joblib as jl
+
 #%%
 
 # pipeline = jl.load("data/scaled_features/motion_expmap_data_pipe.sav")
 pipeline = jl.load("data/scaled_features/motion_data_pipe.sav")
-fps=60
+fps = 60
 # pipeline = Pipeline([
 #     ('dwnsampl', DownSampler(tgt_fps=fps,  keep_all=False)),
 #     ('root', RootTransformer('pos_rot_deltas')),
@@ -279,47 +286,77 @@ data.shape
 # note: some transformations (such as transforming to joint positions) are not inversible
 # bvh_data=pipeline.inverse_transform([data[:,0,:]])
 # bvh_data=pipeline.inverse_transform([np.concatenate([data[:,0,:],np.zeros((data.shape[0],3))], 1)])
-bvh_data=pipeline.inverse_transform([data[:,0,:]])
+bvh_data = pipeline.inverse_transform([data[:, 0, :]])
 # bvh_data=pipeline.inverse_transform([data])
 
 writer = BVHWriter()
-with open('analysis/tmp/converted.bvh','w') as f:
+with open("analysis/tmp/converted.bvh", "w") as f:
     writer.write(bvh_data[0], f)
 
-bvh2pos = MocapParameterizer('position')
+bvh2pos = MocapParameterizer("position")
 pos_data = bvh2pos.fit_transform(bvh_data)
 dest_dir = "analysis/tmp"
-filename="test"
-render_mp4(pos_data[0], f'{dest_dir}/{filename}.mp4', axis_scale=3, elev=45, azim=45)
+filename = "test"
+render_mp4(pos_data[0], f"{dest_dir}/{filename}.mp4", axis_scale=3, elev=45, azim=45)
 
 # import pandas as pd
 #
 # pd.__version__
 #
 #
-fps=60
+fps = 60
 p = BVHParser()
-data_pipe = Pipeline([
-    ('dwnsampl', DownSampler(tgt_fps=fps,  keep_all=False)),
-    ('root', RootTransformer('pos_rot_deltas')),
-    # ('mir', Mirror(axis='X', append=True)),
-    ('jtsel', JointSelector(['Spine', 'Spine1', 'Spine2', 'Neck', 'Head', 'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'], include_root=True)),
-    ('exp', MocapParameterizer('expmap')),
-    # ('cnst', ConstantsRemover()),
-    ('np', Numpyfier())
-])
+data_pipe = Pipeline(
+    [
+        ("dwnsampl", DownSampler(tgt_fps=fps, keep_all=False)),
+        ("root", RootTransformer("pos_rot_deltas")),
+        # ('mir', Mirror(axis='X', append=True)),
+        (
+            "jtsel",
+            JointSelector(
+                [
+                    "Spine",
+                    "Spine1",
+                    "Spine2",
+                    "Neck",
+                    "Head",
+                    "RightShoulder",
+                    "RightArm",
+                    "RightForeArm",
+                    "RightHand",
+                    "LeftShoulder",
+                    "LeftArm",
+                    "LeftForeArm",
+                    "LeftHand",
+                    "RightUpLeg",
+                    "RightLeg",
+                    "RightFoot",
+                    "RightToeBase",
+                    "LeftUpLeg",
+                    "LeftLeg",
+                    "LeftFoot",
+                    "LeftToeBase",
+                ],
+                include_root=True,
+            ),
+        ),
+        ("exp", MocapParameterizer("expmap")),
+        # ('cnst', ConstantsRemover()),
+        ("np", Numpyfier()),
+    ]
+)
 
-f="analysis/tmp/gWA_sFM_cAll_d26_mWA4_ch12.bvh"
+f = "analysis/tmp/gWA_sFM_cAll_d26_mWA4_ch12.bvh"
 out_data = data_pipe.fit_transform([p.parse(f)])
 
 # out_data[0].values
 out_data.shape
-out_data[0,:10,-1]
+out_data[0, :10, -1]
 
-bvh_data=data_pipe.inverse_transform(out_data)
+bvh_data = data_pipe.inverse_transform(out_data)
 
 writer = BVHWriter()
-with open('analysis/tmp/test.bvh','w') as f:
+with open("analysis/tmp/test.bvh", "w") as f:
     writer.write(bvh_data[0], f)
 
 
