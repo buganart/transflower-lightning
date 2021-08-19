@@ -17,6 +17,7 @@ data/*
 !data/scripts/*
 !data/fixed_skeleton.bvh
 !data/test_data_BU/base_filenames_train.txt
+!data/test_data_BU/process_feat_ddcpca.py
 inference/*
 !inference/generate.py
 test_data/*
@@ -32,3 +33,4 @@ to_check*
 MNIST/
 models/x_transformers
 data/scripts/*
+*.cpython-38.pyc
