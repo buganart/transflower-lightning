@@ -39,6 +39,9 @@ echo $exp
 echo $SLURM_PROCID
 export LOCAL_RANK=$SLURM_LOCALID
 
+# python training/train.py --data_dir=data/test_data_BU --max_epochs=1000 --hparams_file=training/hparams/audio_flow/transflower_mel_onset.yaml --experiment_name=transflower_mel_beats --workers=4 --gpus=-1 --accelerator=ddp
+# python training/train.py --data_dir=data/test_data_BU --max_epochs=1000 --hparams_file=training/hparams/audio_flow/transflower_mel_onset.yaml --experiment_name=transflower_mel_beats --workers=1 --gpus=0
+
 $py training/train.py --data_dir=${data_dir} \
     --max_epochs=1000\
     --hparams_file=training/hparams/${hparams_file}.yaml \

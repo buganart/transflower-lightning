@@ -67,15 +67,18 @@ if __name__ == '__main__':
     train_dataset = create_dataset(opt)
     train_dataset.setup()
     train_dataloader = create_dataloader(train_dataset)
+    print('#training sequences = {:d}'.format(len(train_dataset)))
     if opt.do_validation:
         val_dataset = create_dataset(opt, split="val")
         val_dataset.setup()
         val_dataloader = create_dataloader(val_dataset, split="val")
+        print('#validation sequences = {:d}'.format(len(val_dataset)))
     if opt.do_testing:
         test_dataset = create_dataset(opt, split="test")
         test_dataset.setup()
         test_dataloader = create_dataloader(test_dataset, split="test")
-    print('#training sequences = {:d}'.format(len(train_dataset)))
+        print('#testing sequences = {:d}'.format(len(test_dataset)))
+    
 
     default_save_path = opt.checkpoints_dir+"/"+opt.experiment_name
 

@@ -16,6 +16,7 @@ data/*
 !data/scripts
 !data/scripts/*
 !data/fixed_skeleton.bvh
+!data/test_data_BU/base_filenames_train.txt
 inference/*
 !inference/generate.py
 test_data/*
