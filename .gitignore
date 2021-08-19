@@ -16,6 +16,9 @@ data/*
 !data/scripts
 !data/scripts/*
 !data/fixed_skeleton.bvh
+!data/test_data_BU
+data/test_data_BU/*.npy
+data/test_data_BU/*.pkl
 !data/test_data_BU/base_filenames_train.txt
 !data/test_data_BU/process_feat_ddcpca.py
 inference/*

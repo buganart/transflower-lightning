@@ -1,0 +1,9 @@
+To train using your own data: 
+1) process audio files in the colab notebook. 
+2) download *.feats_ddcpca.npy to 'data/test_data_BU'
+3) download scalar.pkl file containing sklearn.StandardScaler
+4) run process_feat_ddcpca.py in 'data/test_data_BU' to obtain *.audio_mel80.npy and *.audio_beats5.npy
+
+5) go to 'training/hparams/audio_flow/', check transflower_mel_onset.yaml
+6) go back to the base/root (the transflower-lightning folder, run
+python training/train.py --data_dir=data/test_data_BU --max_epochs=1000 --hparams_file=training/hparams/audio_flow/transflower_mel_onset.yaml --experiment_name=transflower_mel_beats --workers=4 --gpus=-1 --accelerator=ddp
